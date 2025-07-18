@@ -30,7 +30,5 @@ class DatabaseSeeder extends Seeder
             'role' => 'employee',
         ]);
 
-
-        $data = null;
     }
 }
