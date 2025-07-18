@@ -107,6 +107,11 @@ class KpiManagementResource extends Resource
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
                             ->disabled(fn ($record) => $record && !$record->is_editable),
+                        Forms\Components\TextInput::make('output')
+                            ->label('Output Target')
+                            ->placeholder('Contoh: 4 laporan per bulan, 95% tingkat kepuasan')
+                            ->helperText('Target output yang terukur dari KPI ini')
+                            ->columnSpan(2),
                     ])->columns(2),
                     
                 
@@ -300,6 +305,18 @@ class KpiManagementResource extends Resource
                         }
                         return $state;
                     }),
+                Tables\Columns\TextColumn::make('output')
+                    ->label('Output Target')
+                    ->searchable()
+                    ->limit(30)
+                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) <= 30) {
+                            return null;
+                        }
+                        return $state;
+                    })
+                    ->placeholder('Belum diset'),
                 Tables\Columns\TextColumn::make('assignment_type')
                     ->label('Assignment')
                     ->badge()
@@ -415,11 +432,24 @@ class KpiManagementResource extends Resource
                     ->color('info')
                     ->action(function (KelolaKPI $record) {
                         $newRecord = $record->replicate();
-                        $newRecord->id = $record->id . '-COPY-' . time();
+                        // Biarkan database auto-generate ID baru
+                        $newRecord->id = null;
+                        // Tambahkan tanda (Copy) di activity untuk membedakan
+                        $newRecord->activity = $record->activity . ' (Copy)';
+                        // Set status ke draft untuk review
+                        $newRecord->status = 'draft';
                         $newRecord->save();
+                        
+                        // Duplikasi sub activities jika ada
+                        foreach ($record->subActivities as $subActivity) {
+                            $newSubActivity = $subActivity->replicate();
+                            $newSubActivity->kpi_id = $newRecord->id;
+                            $newSubActivity->save();
+                        }
                         
                         \Filament\Notifications\Notification::make()
                             ->title('KPI berhasil diduplikasi')
+                            ->body('Sub activities juga telah disalin. Status diset ke Draft untuk review.')
                             ->success()
                             ->send();
                     })

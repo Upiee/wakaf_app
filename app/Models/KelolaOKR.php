@@ -37,6 +37,7 @@ class KelolaOKR extends Model
 
     protected $attributes = [
         'tipe' => 'okr',
+        'output' => '',
     ];
 
     public function indikatorProgress()

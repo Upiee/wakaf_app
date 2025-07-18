@@ -36,6 +36,7 @@ class KelolaKPI extends Model
 
     protected $attributes = [
         'tipe' => 'kpi',
+        'output' => '',
     ];
 
     public function indikatorProgress()

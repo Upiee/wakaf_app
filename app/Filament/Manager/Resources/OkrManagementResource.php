@@ -102,7 +102,13 @@ class OkrManagementResource extends Resource
                             ->required()
                             ->label('Tipe OKR')
                             ->helperText('Level OKR dalam organisasi'),
-                    ])->columns(1),
+                        
+                        Forms\Components\TextInput::make('output')
+                            ->label('Output/Hasil Utama')
+                            ->placeholder('Contoh: Meningkatkan revenue 25%, Market share 15%')
+                            ->helperText('Hasil utama yang diharapkan dari objective ini')
+                            ->columnSpan(2),
+                    ])->columns(2),
                               
                     
                 Forms\Components\Section::make('Detail Progress OKR')
@@ -308,6 +314,18 @@ class OkrManagementResource extends Resource
                         }
                         return $state;
                     }),
+                Tables\Columns\TextColumn::make('output')
+                    ->label('Output/Hasil')
+                    ->searchable()
+                    ->limit(30)
+                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) <= 30) {
+                            return null;
+                        }
+                        return $state;
+                    })
+                    ->placeholder('Belum diset'),
                 Tables\Columns\TextColumn::make('assignment_type')
                     ->label('Assignment')
                     ->badge()
@@ -424,10 +442,20 @@ class OkrManagementResource extends Resource
                     ->action(function (KelolaOKR $record) {
                         $newRecord = $record->replicate();
                         $newRecord->activity = $record->activity . ' (Copy)';
+                        // Set status ke draft untuk review
+                        $newRecord->status = 'draft';
                         $newRecord->save();
+                        
+                        // Duplikasi sub activities jika ada
+                        foreach ($record->subActivities as $subActivity) {
+                            $newSubActivity = $subActivity->replicate();
+                            $newSubActivity->okr_id = $newRecord->id;
+                            $newSubActivity->save();
+                        }
                         
                         \Filament\Notifications\Notification::make()
                             ->title('OKR berhasil diduplikasi')
+                            ->body('Sub activities juga telah disalin. Status diset ke Draft untuk review.')
                             ->success()
                             ->send();
                     })
