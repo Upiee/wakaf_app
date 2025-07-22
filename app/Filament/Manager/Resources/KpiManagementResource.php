@@ -20,17 +20,17 @@ use Illuminate\Support\Facades\Auth;
 class KpiManagementResource extends Resource
 {
     protected static ?string $model = KelolaKPI::class;
-    
+
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    
+
     protected static ?string $navigationLabel = 'Daftar KPI';
-    
+
     protected static ?string $modelLabel = 'KPI';
-    
+
     protected static ?string $pluralModelLabel = 'Daftar KPI';
-    
+
     protected static ?string $navigationGroup = 'Kelola KPI & OKR';
-    
+
     protected static ?int $navigationSort = 1;
 
     /**
@@ -39,13 +39,13 @@ class KpiManagementResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user || !$user->divisi_id) {
             return null;
         }
-        
+
         $count = static::getEloquentQuery()->count();
-        
+
         return $count > 0 ? (string) $count : null;
     }
 
@@ -55,7 +55,7 @@ class KpiManagementResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         $count = (int) static::getNavigationBadge();
-        
+
         if ($count > 20) {
             return 'danger'; // Merah jika banyak
         } elseif ($count > 10) {
@@ -63,7 +63,7 @@ class KpiManagementResource extends Resource
         } elseif ($count > 0) {
             return 'success'; // Hijau jika ada
         }
-        
+
         return 'gray'; // Abu-abu jika kosong
     }
 
@@ -71,13 +71,13 @@ class KpiManagementResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         return parent::getEloquentQuery()
             ->where('divisi_id', $user->divisi_id) // KPI untuk divisi manager
             ->where(function ($query) {
                 // Tampilkan KPI bertipe 'kpi' (termasuk 'kpi divisi', 'kpi individu', dll)
                 $query->where('tipe', 'LIKE', '%kpi%')
-                      ->orWhere('tipe', 'kpi');
+                    ->orWhere('tipe', 'kpi');
             })
             ->orderBy('created_at', 'desc');
     }
@@ -106,12 +106,12 @@ class KpiManagementResource extends Resource
                             ->required()
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
-                            ->disabled(fn ($record) => $record && !$record->is_editable),
+                            ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
-                    
-                
-                    
-                    
+
+
+
+
                 Forms\Components\Section::make('Detail Progress KPI')
                     ->description('Tambahkan detail progress dan dokumentasi untuk KPI ini')
                     ->schema([
@@ -171,7 +171,7 @@ class KpiManagementResource extends Resource
                     ]),
 
 
-                    Forms\Components\Section::make('Progress & Timeline')
+                Forms\Components\Section::make('Progress & Timeline')
                     ->schema([
                         Forms\Components\TextInput::make('progress')
                             ->numeric()
@@ -197,7 +197,7 @@ class KpiManagementResource extends Resource
                             ->placeholder('Contoh: Akhir Juni 2025'),
                     ])->columns(2),
 
-                    Forms\Components\Section::make('Assignment & Target')
+                Forms\Components\Section::make('Assignment & Target')
                     ->schema([
                         Forms\Components\Radio::make('assignment_type')
                             ->label('Tipe Assignment')
@@ -207,14 +207,14 @@ class KpiManagementResource extends Resource
                             ])
                             ->default('divisi')
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('divisi_id', null) && $set('user_id', null)),
-                            
+                            ->afterStateUpdated(fn(callable $set) => $set('divisi_id', null) && $set('user_id', null)),
+
                         Forms\Components\Select::make('divisi_id')
                             ->label('Pilih Divisi')
                             ->relationship('divisi', 'nama')
                             ->searchable()
                             ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'divisi')
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'divisi')
                             ->helperText(function (callable $get) {
                                 if ($get('divisi_id')) {
                                     $divisi = \App\Models\Divisi::find($get('divisi_id'));
@@ -223,16 +223,16 @@ class KpiManagementResource extends Resource
                                 }
                                 return 'Pilih divisi untuk assignment';
                             }),
-                            
+
                         Forms\Components\Select::make('user_id')
                             ->label('Pilih Karyawan')
                             ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
+                            ->getOptionLabelFromRecordUsing(fn($record) => $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
                             ->searchable(['name', 'email'])
                             ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'individual')
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'individual')
                             ->helperText('Pilih karyawan spesifik untuk assignment'),
-                            
+
                         Forms\Components\Select::make('status')
                             ->label('Status KPI')
                             ->options([
@@ -243,7 +243,7 @@ class KpiManagementResource extends Resource
                             ])
                             ->default('draft')
                             ->required(),
-                            
+
                         Forms\Components\Select::make('priority')
                             ->label('Prioritas')
                             ->options([
@@ -253,13 +253,13 @@ class KpiManagementResource extends Resource
                             ])
                             ->default('medium')
                             ->required(),
-                            
+
                         Forms\Components\Textarea::make('notes')
                             ->label('Catatan')
                             ->rows(3)
                             ->placeholder('Catatan tambahan untuk assignment ini...'),
                     ])->columns(2),
-                    
+
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
                         Forms\Components\Toggle::make('is_editable')
@@ -283,7 +283,7 @@ class KpiManagementResource extends Resource
                 Tables\Columns\TextColumn::make('tipe')
                     ->label('Tipe')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'kpi divisi' => 'warning',
                         'kpi individu' => 'success',
                         default => 'gray',
@@ -303,12 +303,12 @@ class KpiManagementResource extends Resource
                 Tables\Columns\TextColumn::make('assignment_type')
                     ->label('Assignment')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'divisi' => 'success',
                         'individual' => 'warning',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'divisi' => 'Divisi',
                         'individual' => 'Individual',
                         default => $state,
@@ -324,11 +324,11 @@ class KpiManagementResource extends Resource
                         }
                         return 'Not assigned';
                     })
-                    ->icon(fn ($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
+                    ->icon(fn($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'draft' => 'gray',
                         'active' => 'success',
                         'completed' => 'info',
@@ -338,18 +338,19 @@ class KpiManagementResource extends Resource
                 Tables\Columns\TextColumn::make('priority')
                     ->label('Priority')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'high' => 'danger',
                         'medium' => 'warning',
                         'low' => 'success',
                         default => 'gray',
                     }),
-                
+
                 Tables\Columns\TextColumn::make('progress')
                     ->label('Progress')
                     ->suffix('%')
+                    ->getStateUsing(fn($record) => $record->achievement ?? 0)
                     ->sortable()
-                    ->color(fn ($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
+                    ->color(fn($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
                     ->alignCenter(),
                 Tables\Columns\TextColumn::make('periode')
                     ->label('Periode')
@@ -389,8 +390,8 @@ class KpiManagementResource extends Resource
                         if (!isset($data['progress_status'])) {
                             return $query;
                         }
-                        
-                        return match($data['progress_status']) {
+
+                        return match ($data['progress_status']) {
                             'low' => $query->where('progress', '<', 60),
                             'medium' => $query->whereBetween('progress', [60, 79]),
                             'high' => $query->where('progress', '>=', 80),
@@ -407,7 +408,7 @@ class KpiManagementResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Detail'),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => $record->is_editable)
+                    ->visible(fn($record) => $record->is_editable)
                     ->label('Edit'),
                 Tables\Actions\Action::make('duplicate')
                     ->label('Duplikasi')
@@ -417,7 +418,7 @@ class KpiManagementResource extends Resource
                         $newRecord = $record->replicate();
                         $newRecord->id = $record->id . '-COPY-' . time();
                         $newRecord->save();
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->title('KPI berhasil diduplikasi')
                             ->success()
@@ -425,12 +426,12 @@ class KpiManagementResource extends Resource
                     })
                     ->requiresConfirmation(),
                 Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn ($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn ($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn ($record) => $record->is_editable ? 'danger' : 'success')
+                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
+                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
                     ->action(function (KelolaKPI $record) {
                         $record->update(['is_editable' => !$record->is_editable]);
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->title($record->is_editable ? 'KPI dibuka untuk edit' : 'KPI dikunci dari edit')
                             ->success()
@@ -446,8 +447,8 @@ class KpiManagementResource extends Resource
                         ->icon('heroicon-o-lock-closed')
                         ->color('danger')
                         ->action(function ($records) {
-                            $records->each(fn ($record) => $record->update(['is_editable' => false]));
-                            
+                            $records->each(fn($record) => $record->update(['is_editable' => false]));
+
                             \Filament\Notifications\Notification::make()
                                 ->title('KPI terpilih berhasil dikunci')
                                 ->success()
@@ -459,8 +460,8 @@ class KpiManagementResource extends Resource
                         ->icon('heroicon-o-lock-open')
                         ->color('success')
                         ->action(function ($records) {
-                            $records->each(fn ($record) => $record->update(['is_editable' => true]));
-                            
+                            $records->each(fn($record) => $record->update(['is_editable' => true]));
+
                             \Filament\Notifications\Notification::make()
                                 ->title('KPI terpilih berhasil dibuka')
                                 ->success()
@@ -489,17 +490,17 @@ class KpiManagementResource extends Resource
     {
         return 'Kelola KPI & OKR';
     }
-    
+
     public static function getModelLabel(): string
     {
         return 'KPI';
     }
-    
+
     public static function getPluralModelLabel(): string
     {
         return 'Daftar KPI';
     }
-    
+
     public static function getNavigationLabel(): string
     {
         return 'Daftar KPI';

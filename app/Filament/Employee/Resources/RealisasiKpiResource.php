@@ -5,6 +5,7 @@ namespace App\Filament\Employee\Resources;
 use App\Filament\Employee\Resources\RealisasiKpiResource\Pages;
 use App\Models\RealisasiKpi;
 use App\Models\KelolaKPI;
+use App\Models\KpiSubActivity;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -29,13 +30,13 @@ class RealisasiKpiResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return null;
         }
-        
+
         $count = static::getEloquentQuery()->count();
-        
+
         return $count > 0 ? (string) $count : null;
     }
 
@@ -45,29 +46,29 @@ class RealisasiKpiResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return 'gray';
         }
-        
+
         // Hitung realisasi yang pending approval
         $pendingCount = static::getEloquentQuery()
             ->where('is_cutoff', true)
             ->whereNull('approved_at')
             ->count();
-            
+
         if ($pendingCount > 0) {
             return 'warning'; // Kuning jika ada yang pending
         }
-        
+
         $approvedCount = static::getEloquentQuery()
             ->whereNotNull('approved_at')
             ->count();
-            
+
         if ($approvedCount > 0) {
             return 'success'; // Hijau jika ada yang approved
         }
-        
+
         return 'info'; // Biru untuk draft
     }
 
@@ -75,7 +76,7 @@ class RealisasiKpiResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         return parent::getEloquentQuery()
             ->where('user_id', $user->id) // Hanya realisasi employee yang login
             ->orderBy('created_at', 'desc');
@@ -87,11 +88,11 @@ class RealisasiKpiResource extends Resource
             ->schema([
                 // Hidden field untuk divisi (auto-filled dengan divisi employee)
                 Forms\Components\Hidden::make('divisi_id')
-                    ->default(fn () => Auth::user()->divisi_id),
+                    ->default(fn() => Auth::user()->divisi_id),
 
                 // Hidden field untuk user_id (auto-filled dengan user yang login)
                 Forms\Components\Hidden::make('user_id')
-                    ->default(fn () => Auth::user()->id),
+                    ->default(fn() => Auth::user()->id),
 
                 Forms\Components\Select::make('kpi_id')
                     ->label('🎯 KPI Saya')
@@ -99,9 +100,9 @@ class RealisasiKpiResource extends Resource
                         $user = Auth::user();
                         // Hanya KPI individual yang assigned ke employee ini
                         return KelolaKPI::where('user_id', $user->id)
-                                       ->where('assignment_type', 'individual')
-                                       ->whereIn('tipe', ['kpi', 'kpi individu'])
-                                       ->pluck('activity', 'id');
+                            ->where('assignment_type', 'individual')
+                            ->whereIn('tipe', ['kpi', 'kpi individu'])
+                            ->pluck('activity', 'id');
                     })
                     ->required()
                     ->searchable()
@@ -112,32 +113,76 @@ class RealisasiKpiResource extends Resource
                         // Cek apakah sudah ada realisasi untuk KPI ini di periode yang sama
                         $user = Auth::user();
                         $periode = request()->input('periode', 'Q3-2025');
-                        
-                        if ($state) {
-                            $exists = RealisasiKpi::where('kpi_id', $state)
-                                                  ->where('user_id', $user->id)
-                                                  ->where('periode', $periode)
-                                                  ->exists();
-                            
-                            if ($exists) {
-                                // Reset field jika sudah ada
-                                $set('kpi_id', null);
-                                // Notification akan ditampilkan via validation
-                            }
+
+                        // if ($state) {
+                        //     $exists = RealisasiKpi::where('kpi_id', $state)
+                        //         ->where('user_id', $user->id)
+                        //         ->where('periode', $periode)
+                        //         ->exists();
+
+                        //     if ($exists) {
+                        //         // Reset field jika sudah ada
+                        //         $set('kpi_id', null);
+                        //         // Notification akan ditampilkan via validation
+                        //     }
+                        // }
+                    }),
+
+                Forms\Components\Select::make('kpi_sub_activity_id')
+                    ->label('Indikator KPI')
+                    ->options(function (callable $get) {
+                        $kpiId = $get('kpi_id');
+
+                        if (!$kpiId) {
+                            return [];
                         }
+
+                        return KpiSubActivity::where('kpi_id', $kpiId)
+                            ->pluck('indikator', 'id')
+                            ->mapWithKeys(function ($item, $key) {
+                                return [$key => $item];
+                            })
+                            ->toArray() ?? [];
                     })
+                    ->placeholder('Pilih sub-activity (jika ada)')
+                    ->helperText('Opsional, jika KPI memiliki sub-activity')
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set, $get) {
+                        // Cek apakah sudah ada realisasi untuk sub-activity ini di periode yang sama
+                        $user = Auth::user();
+                        $periode = request()->input('periode', 'Q3-2025');
+                        $kpiId = $get('kpi_id');
+
+                        // if ($state && $kpiId) {
+                        //     $exists = RealisasiKpi::where('kpi_sub_activity_id', $state)
+                        //         ->where('user_id', $user->id)
+                        //         ->where('periode', $periode)
+                        //         ->exists();
+
+                        //     if ($exists) {
+                        //         // Reset field jika sudah ada
+                        //         $set('kpi_sub_activity_id', null);
+                        //         // Notification akan ditampilkan via validation
+                        //     }
+                        // }
+                    })
+                    ->required()
+                    ->searchable()
+                    ->placeholder('Pilih sub-activity (jika ada)')
+                    ->helperText('Opsional, jika KPI memiliki sub-activity')
+                    ->live()
                     ->rules([
                         function () {
                             return function (string $attribute, $value, $fail) {
                                 $user = Auth::user();
                                 $periode = request()->input('periode', 'Q3-2025');
-                                
+
                                 // Cek duplicate entry
                                 $exists = RealisasiKpi::where('kpi_id', $value)
-                                                      ->where('user_id', $user->id)
-                                                      ->where('periode', $periode)
-                                                      ->exists();
-                                
+                                    ->where('user_id', $user->id)
+                                    ->where('periode', $periode)
+                                    ->exists();
+
                                 if ($exists) {
                                     $fail('Anda sudah mengisi realisasi untuk KPI ini pada periode yang sama.');
                                 }
@@ -174,10 +219,10 @@ class RealisasiKpiResource extends Resource
                         if ($kpiId && $state) {
                             $user = Auth::user();
                             $exists = RealisasiKpi::where('kpi_id', $kpiId)
-                                                  ->where('user_id', $user->id)
-                                                  ->where('periode', $state)
-                                                  ->exists();
-                            
+                                ->where('user_id', $user->id)
+                                ->where('periode', $state)
+                                ->exists();
+
                             if ($exists) {
                                 $set('kpi_id', null);
                             }
@@ -217,15 +262,21 @@ class RealisasiKpiResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('kpi.output')
-                    ->label('Target')
+                Tables\Columns\TextColumn::make('indikator.indikator')
+                    ->label('Indikator')
                     ->limit(50)
+                    ->searchable()
                     ->sortable(),
+
+                // Tables\Columns\TextColumn::make('kpi.output')
+                //     ->label('Target')
+                //     ->limit(50)
+                //     ->sortable(),
 
                 Tables\Columns\TextColumn::make('kpi.tipe')
                     ->label('Tipe')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'kpi individu' => 'success',
                         'kpi divisi' => 'warning',
                         'kpi' => 'info',
@@ -237,7 +288,7 @@ class RealisasiKpiResource extends Resource
                     ->suffix('%')
                     ->numeric()
                     ->sortable()
-                    ->color(fn (string $state): string => match (true) {
+                    ->color(fn(string $state): string => match (true) {
                         $state >= 100 => 'success',
                         $state >= 80 => 'warning',
                         $state >= 60 => 'info',
@@ -313,18 +364,18 @@ class RealisasiKpiResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                
+
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => $record->is_editable)
+                    ->visible(fn($record) => $record->is_editable)
                     ->tooltip(function ($record) {
                         if (!$record->is_editable) {
                             return 'Data sudah final atau sudah di-approve dan tidak dapat diubah';
                         }
                         return 'Edit realisasi';
                     }),
-                
+
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($record) => $record->is_editable)
+                    ->visible(fn($record) => $record->is_editable)
                     ->tooltip(function ($record) {
                         if (!$record->is_editable) {
                             return 'Data sudah final atau sudah di-approve dan tidak dapat dihapus';
@@ -337,13 +388,13 @@ class RealisasiKpiResource extends Resource
                     ->label('Set Final')
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
-                    ->visible(fn ($record) => $record->approval_status === 'draft')
+                    ->visible(fn($record) => $record->approval_status === 'draft')
                     ->requiresConfirmation()
                     ->modalHeading('Set Data Final')
                     ->modalDescription('Apakah Anda yakin ingin menetapkan data ini sebagai final? Setelah final, data tidak dapat diubah lagi.')
                     ->action(function ($record) {
                         $record->setFinal();
-                        
+
                         Notification::make()
                             ->success()
                             ->title('Data berhasil di-set final')

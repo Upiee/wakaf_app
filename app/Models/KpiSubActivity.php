@@ -93,4 +93,21 @@ class KpiSubActivity extends Model
             default => 'Unknown'
         };
     }
+
+    public function realisasi()
+    {
+        return $this->hasMany(RealisasiKpi::class, 'kpi_sub_activity_id');
+    }
+
+    public function getRealisasiKpiTotalAttribute(): float
+    {
+        $totalNilai = $this->realisasi()->sum('nilai');
+        $totalBobot = $this->bobot;
+
+        if ($totalBobot <= 0) {
+            return 0;
+        }
+
+        return $totalNilai * $totalBobot / 100;
+    }
 }

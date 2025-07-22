@@ -142,6 +142,26 @@ class KelolaKPI extends Model
             return 'not_started';
         }
     }
+
+    public function getAchievementAttribute(): float
+    {
+        $subActivities = $this->subActivities()->where('is_active', true)->get();   
+
+        if ($subActivities->isEmpty()) {
+            return 0;
+        }
+
+        $totalAchievement = 0;
+        
+        foreach ($subActivities as $subActivity) {
+            $achievement = $subActivity->realisasi_kpi_total ?? 0; // Default to 0 if no achievement
+            $totalAchievement += $achievement;
+        }
+
+        $totalBobot = $subActivities->sum('bobot') ?: 1; // Avoid division by zero
+
+        return $totalAchievement / $totalBobot * 100; // Return as percentage
+    }
 }
 
 

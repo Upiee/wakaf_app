@@ -27,12 +27,12 @@ class KelolaKPIResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Dasar KPI')
                     ->schema([
-                        Forms\Components\TextInput::make('id')
-                            ->label('ID KPI')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: KPI-DIV-001')
-                            ->helperText('ID unik untuk KPI ini'),
+                        // Forms\Components\TextInput::make('id')
+                        //     ->label('ID KPI')
+                        //     ->required()
+                        //     ->unique(ignoreRecord: true)
+                        //     ->placeholder('Contoh: KPI-DIV-001')
+                        //     ->helperText('ID unik untuk KPI ini'),
                         Forms\Components\Select::make('tipe')
                             ->options([
                                 'kpi divisi' => 'KPI Divisi',
@@ -287,8 +287,9 @@ class KelolaKPIResource extends Resource
                 Tables\Columns\TextColumn::make('progress')
                     ->label('Progress')
                     ->suffix('%')
+                    ->getStateUsing(fn($record) => $record->achievement ?? 0)
                     ->sortable()
-                    ->color(fn ($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
+                    ->color(fn($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
                     ->alignCenter(),
                 Tables\Columns\TextColumn::make('periode')
                     ->label('Periode')

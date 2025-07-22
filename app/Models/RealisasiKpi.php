@@ -11,6 +11,7 @@ class RealisasiKpi extends Model
     protected $fillable = [
         'divisi_id',
         'kpi_id',
+        'kpi_sub_activity_id',
         'user_id', // untuk tracking siapa yang input
         'nilai',
         'periode',
@@ -115,6 +116,11 @@ class RealisasiKpi extends Model
     public function kpi()
     {
         return $this->belongsTo(KelolaKPI::class, 'kpi_id', 'id');
+    }
+
+    public function indikator()
+    {
+        return $this->belongsTo(KpiSubActivity::class, 'kpi_sub_activity_id', 'id');
     }
 
     public function user()
