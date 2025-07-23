@@ -20,9 +20,14 @@ class onlyManager
             return redirect()->route('filament.manager.auth.login');
         }
 
-        // Pastikan user memiliki role manager
-        if (auth()->user()->role !== 'manager') {
-            abort(403, 'Access denied. Manager role required.');
+        if (!$request->user()) {
+            abort(403, 'Unauthorized - Manager Access Required');
+        }
+
+        $role = $request->user()->role;
+        // strpos
+        if (!str_contains($role, 'manager')) {
+            abort(403, 'Unauthorized - Manager Access Required');
         }
 
         return $next($request);
