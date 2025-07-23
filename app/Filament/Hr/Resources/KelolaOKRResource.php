@@ -26,23 +26,67 @@ class KelolaOKRResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Dasar OKR')
                     ->schema([
+                        Forms\Components\Select::make('assignment_type')
+                            ->label('Tipe Assignment')
+                            ->options([
+                                'divisi' => 'Target ke Divisi',
+                                'individual' => 'Target ke Karyawan',
+                            ])
+                            ->default('divisi')
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                if ($state === 'divisi') {
+                                    $set('user_id', null);
+                                    $set('tipe', 'kpi divisi');
+                                } elseif ($state === 'individual') {
+                                    $set('divisi_id', null);
+                                    $set('tipe', 'kpi individu');
+                                }
+                            }),
+
+                        Forms\Components\Select::make('divisi_id')
+                            ->label('Pilih Divisi')
+                            ->options(
+                                \App\Models\Divisi::options()
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'divisi')
+                            ->helperText(function (callable $get) {
+                                if ($get('divisi_id')) {
+                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
+                                    $count = $divisi ? $divisi->users()->count() : 0;
+                                    return "📊 {$count} karyawan akan menerima KPI ini";
+                                }
+                                return 'Pilih divisi untuk assignment';
+                            }),
+
+                        Forms\Components\Select::make('user_id')
+                            ->label('Pilih Karyawan')
+                            ->relationship('user', 'name')
+                            ->getOptionLabelFromRecordUsing(fn($record) => '#' . $record->id . ' ' . $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
+                            ->searchable(['name', 'email'])
+                            ->preload()
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'individual')
+                            ->helperText('Pilih karyawan spesifik untuk assignment'),
+
+                        Forms\Components\Select::make('priority')
+                            ->label('Prioritas')
+                            ->options([
+                                'low' => 'Low',
+                                'medium' => 'Medium',
+                                'high' => 'High',
+                            ])
+                            ->default('medium')
+                            ->hidden(),
                         Forms\Components\TextInput::make('activity')
                             ->required()
-                            ->label('Objective (Tujuan)')
-                            ->placeholder('Contoh: Menjadi perusahaan teknologi terdepan di Indonesia')
-                            ->helperText('Tujuan utama yang ingin dicapai'),
-                        
-                        Forms\Components\Select::make('tipe')
-                            ->options([
-                                'okr divisi' => 'OKR Divisi',
-                                'okr individu' => 'OKR Individu',
-                            ])
-                            ->required()
-                            ->label('Tipe OKR')
-                            ->helperText('Level OKR dalam organisasi'),
-                    ])->columns(1),
-                              
-                    
+                            ->label('Aktivitas/Deskripsi KPI')
+                            ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
+                            ->disabled(fn($record) => $record && !$record->is_editable),
+                    ])->columns(2),
+
+
                 Forms\Components\Section::make('Detail Progress OKR')
                     ->description('Tambahkan detail progress dan dokumentasi untuk OKR ini')
                     ->schema([
@@ -113,7 +157,7 @@ class KelolaOKRResource extends Resource
                             ->helperText('💡 Tambahkan detail progress dengan bobot untuk OKR ini. Total bobot harus = 100%'),
                     ]),
 
-                    // Form Konfigurasi    
+                // Form Konfigurasi    
                 Forms\Components\Section::make('Progress & Timeline')
                     ->schema([
                         Forms\Components\TextInput::make('progress')
@@ -140,70 +184,6 @@ class KelolaOKRResource extends Resource
                             ->label('Timeline Target')
                             ->placeholder('Contoh: Akhir Desember 2025'),
                     ])->columns(2),
-                
-                // Form Assignment & Target    
-                Forms\Components\Section::make('Assignment & Target')
-                    ->schema([
-                        Forms\Components\Radio::make('assignment_type')
-                            ->label('Tipe Assignment')
-                            ->options([
-                                'divisi' => 'Assign ke Divisi (Semua anggota divisi)',
-                                'individual' => 'Assign ke Individual (Specific person)',
-                            ])
-                            ->default('divisi')
-                            ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('divisi_id', null) && $set('user_id', null)),
-                            
-                        Forms\Components\Select::make('divisi_id')
-                            ->label('Pilih Divisi')
-                            ->relationship('divisi', 'nama')
-                            ->searchable()
-                            ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'divisi')
-                            ->helperText(function (callable $get) {
-                                if ($get('divisi_id')) {
-                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
-                                    $count = $divisi ? $divisi->users()->count() : 0;
-                                    return "📊 {$count} karyawan akan menerima OKR ini";
-                                }
-                                return 'Pilih divisi untuk assignment';
-                            }),
-                            
-                        Forms\Components\Select::make('user_id')
-                            ->label('Pilih Karyawan')
-                            ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
-                            ->searchable(['name', 'email'])
-                            ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'individual')
-                            ->helperText('Pilih karyawan spesifik untuk assignment'),
-                            
-                        Forms\Components\Select::make('status')
-                            ->label('Status OKR')
-                            ->options([
-                                'draft' => 'Draft',
-                                'active' => 'Active',
-                                'completed' => 'Completed',
-                                'archived' => 'Archived',
-                            ])
-                            ->default('draft')
-                            ->required(),
-                            
-                        Forms\Components\Select::make('priority')
-                            ->label('Prioritas')
-                            ->options([
-                                'low' => 'Low',
-                                'medium' => 'Medium',
-                                'high' => 'High',
-                            ])
-                            ->default('medium')
-                            ->required(),
-                            
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Catatan')
-                            ->rows(3)
-                            ->placeholder('Catatan tambahan untuk assignment ini...'),
-                    ])->columns(2),            
 
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
@@ -220,7 +200,7 @@ class KelolaOKRResource extends Resource
         return $table
             ->recordUrl(null)
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                Tables\Columns\TextColumn::make('code_id')
                     ->label('ID OKR')
                     ->searchable()
                     ->sortable()
@@ -228,13 +208,13 @@ class KelolaOKRResource extends Resource
                 Tables\Columns\TextColumn::make('tipe')
                     ->label('Tipe')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'okr divisi' => 'primary',
                         'okr individu' => 'info',
                         default => 'gray',
                     })
                     ->sortable(),
-                    // Form Konfigurasi
+                // Form Konfigurasi
                 Tables\Columns\TextColumn::make('activity')
                     ->label('Objective (Tujuan)')
                     ->searchable()
@@ -249,12 +229,12 @@ class KelolaOKRResource extends Resource
                 Tables\Columns\TextColumn::make('assignment_type')
                     ->label('Assignment')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'divisi' => 'success',
                         'individual' => 'warning',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'divisi' => 'Divisi',
                         'individual' => 'Individual',
                         default => $state,
@@ -270,11 +250,11 @@ class KelolaOKRResource extends Resource
                         }
                         return 'Not assigned';
                     })
-                    ->icon(fn ($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
+                    ->icon(fn($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'draft' => 'gray',
                         'active' => 'success',
                         'completed' => 'info',
@@ -284,19 +264,19 @@ class KelolaOKRResource extends Resource
                 Tables\Columns\TextColumn::make('priority')
                     ->label('Priority')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'high' => 'danger',
                         'medium' => 'warning',
                         'low' => 'success',
                         default => 'gray',
                     }),
-                
-                
+
+
                 Tables\Columns\TextColumn::make('progress')
                     ->label('Progress')
                     ->suffix('%')
                     ->sortable()
-                    ->color(fn ($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
+                    ->color(fn($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
                     ->alignCenter(),
                 Tables\Columns\TextColumn::make('periode')
                     ->label('Periode')
@@ -336,8 +316,8 @@ class KelolaOKRResource extends Resource
                         if (!isset($data['progress_status'])) {
                             return $query;
                         }
-                        
-                        return match($data['progress_status']) {
+
+                        return match ($data['progress_status']) {
                             'low' => $query->where('progress', '<', 60),
                             'medium' => $query->whereBetween('progress', [60, 79]),
                             'high' => $query->where('progress', '>=', 80),
@@ -354,7 +334,7 @@ class KelolaOKRResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Detail'),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => $record->is_editable)
+                    ->visible(fn($record) => $record->is_editable)
                     ->label('Edit'),
                 Tables\Actions\Action::make('duplicate')
                     ->label('Duplikasi')
@@ -364,7 +344,7 @@ class KelolaOKRResource extends Resource
                         $newRecord = $record->replicate();
                         $newRecord->activity = $record->activity . ' (Copy)';
                         $newRecord->save();
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->title('OKR berhasil diduplikasi')
                             ->success()
@@ -372,12 +352,12 @@ class KelolaOKRResource extends Resource
                     })
                     ->requiresConfirmation(),
                 Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn ($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn ($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn ($record) => $record->is_editable ? 'danger' : 'success')
+                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
+                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
                     ->action(function (KelolaOKR $record) {
                         $record->update(['is_editable' => !$record->is_editable]);
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->title($record->is_editable ? 'OKR dibuka untuk edit' : 'OKR dikunci dari edit')
                             ->success()
@@ -393,8 +373,8 @@ class KelolaOKRResource extends Resource
                         ->icon('heroicon-o-lock-closed')
                         ->color('danger')
                         ->action(function ($records) {
-                            $records->each(fn ($record) => $record->update(['is_editable' => false]));
-                            
+                            $records->each(fn($record) => $record->update(['is_editable' => false]));
+
                             \Filament\Notifications\Notification::make()
                                 ->title('OKR terpilih berhasil dikunci')
                                 ->success()
@@ -406,15 +386,15 @@ class KelolaOKRResource extends Resource
                         ->icon('heroicon-o-lock-open')
                         ->color('success')
                         ->action(function ($records) {
-                            $records->each(fn ($record) => $record->update(['is_editable' => true]));
-                            
+                            $records->each(fn($record) => $record->update(['is_editable' => true]));
+
                             \Filament\Notifications\Notification::make()
                                 ->title('OKR terpilih berhasil dibuka')
                                 ->success()
                                 ->send();
                         }),
                 ]),
-            ]);    
+            ]);
     }
 
     public static function getRelations(): array
@@ -434,22 +414,22 @@ class KelolaOKRResource extends Resource
     {
         return 'Manajemen KPI';
     }
-    
+
     public static function getModelLabel(): string
     {
         return 'OKR';
     }
-    
+
     public static function getPluralModelLabel(): string
     {
         return 'Daftar OKR';
     }
-    
+
     public static function getNavigationLabel(): string
     {
         return 'Daftar OKR';
     }
-    
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

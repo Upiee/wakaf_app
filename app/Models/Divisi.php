@@ -12,6 +12,12 @@ class Divisi extends Model
         'nama',
     ];
 
+
+    public function getKodeAttribute()
+    {
+        return 'DIV-' . str_pad($this->id, 2, '0', STR_PAD_LEFT);
+    }
+
     /**
      * Get the employees for the divisi.
      */
@@ -47,5 +53,16 @@ class Divisi extends Model
     public function okrs()
     {
         return $this->hasMany(KelolaOKR::class, 'divisi_id');
+    }
+
+    public static function options()
+    {
+        $divisions = self::all();
+
+        $results = [];
+        foreach ($divisions as $division) {
+            $results[$division->id] = $division->kode . ' - ' . $division->nama;
+        }
+        return $results;
     }
 }

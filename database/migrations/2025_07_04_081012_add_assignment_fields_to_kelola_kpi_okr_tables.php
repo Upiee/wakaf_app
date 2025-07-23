@@ -30,7 +30,7 @@ return new class extends Migration
             $table->enum('assignment_type', ['divisi', 'individual'])->default('divisi')->after('tipe');
             $table->unsignedBigInteger('divisi_id')->nullable()->after('assignment_type');
             $table->unsignedBigInteger('user_id')->nullable()->after('divisi_id');
-            $table->enum('status', ['draft', 'active', 'completed', 'archived'])->default('draft')->after('user_id');
+            $table->enum('status', ['draft', 'active', 'completed', 'archived'])->default('active')->after('user_id');
             $table->text('notes')->nullable()->after('status');
             $table->enum('priority', ['low', 'medium', 'high'])->default('medium')->after('notes');
             

@@ -71,29 +71,12 @@ class KpiManagementResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Dasar KPI')
                     ->schema([
-                        Forms\Components\TextInput::make('id')
-                            ->label('ID KPI')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: KPI-DIV-001')
-                            ->helperText('ID unik untuk KPI ini'),
-                        Forms\Components\Select::make('tipe')
-                            ->options([
-                                'kpi divisi' => 'KPI Divisi',
-                                'kpi individu' => 'KPI Individu',
-                            ])
-                            ->required()
-                            ->label('Tipe KPI')
-                            ->helperText('Pilih level KPI yang akan dibuat'),
                         Forms\Components\TextInput::make('activity')
                             ->required()
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
                             ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
-
-
-
 
                 Forms\Components\Section::make('Detail Progress KPI')
                     ->description('Tambahkan detail progress dan dokumentasi untuk KPI ini')
@@ -187,7 +170,7 @@ class KpiManagementResource extends Resource
         return $table
             ->recordUrl(null)
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                Tables\Columns\TextColumn::make('code_id')
                     ->label('ID KPI')
                     ->searchable()
                     ->sortable()
@@ -322,21 +305,6 @@ class KpiManagementResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => $record->is_editable)
                     ->label('Edit'),
-                Tables\Actions\Action::make('duplicate')
-                    ->label('Duplikasi')
-                    ->icon('heroicon-o-document-duplicate')
-                    ->color('info')
-                    ->action(function (KelolaKPI $record) {
-                        $newRecord = $record->replicate();
-                        $newRecord->id = $record->id . '-COPY-' . time();
-                        $newRecord->save();
-
-                        \Filament\Notifications\Notification::make()
-                            ->title('KPI berhasil diduplikasi')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
                 Tables\Actions\Action::make('toggle_edit')
                     ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
                     ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')

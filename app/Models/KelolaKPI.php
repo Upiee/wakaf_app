@@ -38,6 +38,51 @@ class KelolaKPI extends Model
         'tipe' => 'kpi',
     ];
 
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Automatically set the 'tipe' attribute if not set
+            if ($model->assignment_type == 'divisi') {
+                $model->tipe = 'kpi divisi';
+            } elseif ($model->assignment_type == 'individual') {
+                $model->tipe = 'kpi individu';
+            }
+
+            $model->status = 'active';
+
+            if ($model->user && $model->user->divisi_id) {
+                $model->divisi_id = $model->user->divisi_id;
+            } elseif ($model->divisi_id) {
+                $model->user_id = null; // Clear user_id if divisi_id is set
+            }
+        });
+
+        static::updating(function ($model) {
+            // Ensure 'tipe' is set correctly on update
+            if ($model->assignment_type == 'divisi') {
+                $model->tipe = 'kpi divisi';
+            } elseif ($model->assignment_type == 'individual') {
+                $model->tipe = 'kpi individu';
+            }
+
+            $model->status = 'active';
+
+            if ($model->user && $model->user->divisi_id) {
+                $model->divisi_id = $model->user->divisi_id;
+            } elseif ($model->divisi_id) {
+                $model->user_id = null; // Clear user_id if divisi_id is set
+            }
+        });
+    }
+
+    public function getCodeIdAttribute()
+    {
+        $divisiCode = $this->divisi->kode ?? 'UNK';
+        return $divisiCode . ".KPI-" . str_pad($this->id, 4, '0', STR_PAD_LEFT);
+    }
+
     public function indikatorProgress()
     {
         return $this->hasMany(KpiIndikatorProgress::class, 'kpi_id', 'id');

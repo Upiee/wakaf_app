@@ -88,23 +88,67 @@ class OkrManagementResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Dasar OKR')
                     ->schema([
+                        Forms\Components\Select::make('assignment_type')
+                            ->label('Tipe Assignment')
+                            ->options([
+                                'divisi' => 'Target ke Divisi',
+                                'individual' => 'Target ke Karyawan',
+                            ])
+                            ->default('divisi')
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                if ($state === 'divisi') {
+                                    $set('user_id', null);
+                                    $set('tipe', 'kpi divisi');
+                                } elseif ($state === 'individual') {
+                                    $set('divisi_id', null);
+                                    $set('tipe', 'kpi individu');
+                                }
+                            }),
+
+                        Forms\Components\Select::make('divisi_id')
+                            ->label('Pilih Divisi')
+                            ->options(
+                                \App\Models\Divisi::options()
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'divisi')
+                            ->helperText(function (callable $get) {
+                                if ($get('divisi_id')) {
+                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
+                                    $count = $divisi ? $divisi->users()->count() : 0;
+                                    return "📊 {$count} karyawan akan menerima KPI ini";
+                                }
+                                return 'Pilih divisi untuk assignment';
+                            }),
+
+                        Forms\Components\Select::make('user_id')
+                            ->label('Pilih Karyawan')
+                            ->relationship('user', 'name')
+                            ->getOptionLabelFromRecordUsing(fn($record) => '#' . $record->id . ' ' . $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
+                            ->searchable(['name', 'email'])
+                            ->preload()
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'individual')
+                            ->helperText('Pilih karyawan spesifik untuk assignment'),
+
+                        Forms\Components\Select::make('priority')
+                            ->label('Prioritas')
+                            ->options([
+                                'low' => 'Low',
+                                'medium' => 'Medium',
+                                'high' => 'High',
+                            ])
+                            ->default('medium')
+                            ->hidden(),
                         Forms\Components\TextInput::make('activity')
                             ->required()
-                            ->label('Objective (Tujuan)')
-                            ->placeholder('Contoh: Menjadi perusahaan teknologi terdepan di Indonesia')
-                            ->helperText('Tujuan utama yang ingin dicapai'),
-                        
-                        Forms\Components\Select::make('tipe')
-                            ->options([
-                                'okr divisi' => 'OKR Divisi',
-                                'okr individu' => 'OKR Individu',
-                            ])
-                            ->required()
-                            ->label('Tipe OKR')
-                            ->helperText('Level OKR dalam organisasi'),
-                    ])->columns(1),
-                              
-                    
+                            ->label('Aktivitas/Deskripsi KPI')
+                            ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
+                            ->disabled(fn($record) => $record && !$record->is_editable),
+                    ])->columns(2),
+
+
                 Forms\Components\Section::make('Detail Progress OKR')
                     ->description('Tambahkan detail progress dan dokumentasi untuk OKR ini')
                     ->schema([
@@ -175,7 +219,7 @@ class OkrManagementResource extends Resource
                             ->helperText('💡 Tambahkan detail progress dengan bobot untuk OKR ini. Total bobot harus = 100%'),
                     ]),
 
-                    // Form Konfigurasi    
+                // Form Konfigurasi    
                 Forms\Components\Section::make('Progress & Timeline')
                     ->schema([
                         Forms\Components\TextInput::make('progress')
@@ -201,71 +245,7 @@ class OkrManagementResource extends Resource
                         Forms\Components\TextInput::make('timeline')
                             ->label('Timeline Target')
                             ->placeholder('Contoh: Akhir Desember 2025'),
-                    ])->columns(2),
-                
-                // Form Assignment & Target    
-                Forms\Components\Section::make('Assignment & Target')
-                    ->schema([
-                        Forms\Components\Radio::make('assignment_type')
-                            ->label('Tipe Assignment')
-                            ->options([
-                                'divisi' => 'Assign ke Divisi (Semua anggota divisi)',
-                                'individual' => 'Assign ke Individual (Specific person)',
-                            ])
-                            ->default('divisi')
-                            ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('divisi_id', null) && $set('user_id', null)),
-                            
-                        Forms\Components\Select::make('divisi_id')
-                            ->label('Pilih Divisi')
-                            ->relationship('divisi', 'nama')
-                            ->searchable()
-                            ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'divisi')
-                            ->helperText(function (callable $get) {
-                                if ($get('divisi_id')) {
-                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
-                                    $count = $divisi ? $divisi->users()->count() : 0;
-                                    return "📊 {$count} karyawan akan menerima OKR ini";
-                                }
-                                return 'Pilih divisi untuk assignment';
-                            }),
-                            
-                        Forms\Components\Select::make('user_id')
-                            ->label('Pilih Karyawan')
-                            ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
-                            ->searchable(['name', 'email'])
-                            ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'individual')
-                            ->helperText('Pilih karyawan spesifik untuk assignment'),
-                            
-                        Forms\Components\Select::make('status')
-                            ->label('Status OKR')
-                            ->options([
-                                'draft' => 'Draft',
-                                'active' => 'Active',
-                                'completed' => 'Completed',
-                                'archived' => 'Archived',
-                            ])
-                            ->default('draft')
-                            ->required(),
-                            
-                        Forms\Components\Select::make('priority')
-                            ->label('Prioritas')
-                            ->options([
-                                'low' => 'Low',
-                                'medium' => 'Medium',
-                                'high' => 'High',
-                            ])
-                            ->default('medium')
-                            ->required(),
-                            
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Catatan')
-                            ->rows(3)
-                            ->placeholder('Catatan tambahan untuk assignment ini...'),
-                    ])->columns(2),            
+                    ])->columns(2),          
 
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
@@ -282,7 +262,7 @@ class OkrManagementResource extends Resource
         return $table
             ->recordUrl(null)
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                Tables\Columns\TextColumn::make('code_id')
                     ->label('ID OKR')
                     ->searchable()
                     ->sortable()

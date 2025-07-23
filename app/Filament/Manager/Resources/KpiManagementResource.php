@@ -88,29 +88,65 @@ class KpiManagementResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Dasar KPI')
                     ->schema([
-                        Forms\Components\TextInput::make('id')
-                            ->label('ID KPI')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: KPI-DIV-001')
-                            ->helperText('ID unik untuk KPI ini'),
-                        Forms\Components\Select::make('tipe')
+                        Forms\Components\Select::make('assignment_type')
+                            ->label('Tipe Assignment')
                             ->options([
-                                'kpi divisi' => 'KPI Divisi',
-                                'kpi individu' => 'KPI Individu',
+                                'divisi' => 'Target ke Divisi',
+                                'individual' => 'Target ke Karyawan',
                             ])
-                            ->required()
-                            ->label('Tipe KPI')
-                            ->helperText('Pilih level KPI yang akan dibuat'),
+                            ->default('divisi')
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                if ($state === 'divisi') {
+                                    $set('user_id', null);
+                                    $set('tipe', 'kpi divisi');
+                                } elseif ($state === 'individual') {
+                                    $set('divisi_id', null);
+                                    $set('tipe', 'kpi individu');
+                                }
+                            }),
+
+                        Forms\Components\Select::make('divisi_id')
+                            ->label('Pilih Divisi')
+                            ->options(
+                                \App\Models\Divisi::all()->pluck('kode', 'nama', 'id')->map(fn($kode, $nama) => "{$kode} - {$nama}")->toArray()
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'divisi')
+                            ->helperText(function (callable $get) {
+                                if ($get('divisi_id')) {
+                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
+                                    $count = $divisi ? $divisi->users()->count() : 0;
+                                    return "📊 {$count} karyawan akan menerima KPI ini";
+                                }
+                                return 'Pilih divisi untuk assignment';
+                            }),
+
+                        Forms\Components\Select::make('user_id')
+                            ->label('Pilih Karyawan')
+                            ->relationship('user', 'name')
+                            ->getOptionLabelFromRecordUsing(fn($record) => '#' . $record->id . ' ' . $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
+                            ->searchable(['name', 'email'])
+                            ->preload()
+                            ->visible(fn(callable $get) => $get('assignment_type') === 'individual')
+                            ->helperText('Pilih karyawan spesifik untuk assignment'),
+
+                        Forms\Components\Select::make('priority')
+                            ->label('Prioritas')
+                            ->options([
+                                'low' => 'Low',
+                                'medium' => 'Medium',
+                                'high' => 'High',
+                            ])
+                            ->default('medium')
+                            ->hidden(),
                         Forms\Components\TextInput::make('activity')
                             ->required()
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
                             ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
-
-
-
 
                 Forms\Components\Section::make('Detail Progress KPI')
                     ->description('Tambahkan detail progress dan dokumentasi untuk KPI ini')
@@ -197,69 +233,6 @@ class KpiManagementResource extends Resource
                             ->placeholder('Contoh: Akhir Juni 2025'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Assignment & Target')
-                    ->schema([
-                        Forms\Components\Radio::make('assignment_type')
-                            ->label('Tipe Assignment')
-                            ->options([
-                                'divisi' => 'Assign ke Divisi (Semua anggota divisi)',
-                                'individual' => 'Assign ke Individual (Specific person)',
-                            ])
-                            ->default('divisi')
-                            ->reactive()
-                            ->afterStateUpdated(fn(callable $set) => $set('divisi_id', null) && $set('user_id', null)),
-
-                        Forms\Components\Select::make('divisi_id')
-                            ->label('Pilih Divisi')
-                            ->relationship('divisi', 'nama')
-                            ->searchable()
-                            ->preload()
-                            ->visible(fn(callable $get) => $get('assignment_type') === 'divisi')
-                            ->helperText(function (callable $get) {
-                                if ($get('divisi_id')) {
-                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
-                                    $count = $divisi ? $divisi->users()->count() : 0;
-                                    return "📊 {$count} karyawan akan menerima KPI ini";
-                                }
-                                return 'Pilih divisi untuk assignment';
-                            }),
-
-                        Forms\Components\Select::make('user_id')
-                            ->label('Pilih Karyawan')
-                            ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn($record) => $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
-                            ->searchable(['name', 'email'])
-                            ->preload()
-                            ->visible(fn(callable $get) => $get('assignment_type') === 'individual')
-                            ->helperText('Pilih karyawan spesifik untuk assignment'),
-
-                        Forms\Components\Select::make('status')
-                            ->label('Status KPI')
-                            ->options([
-                                'draft' => 'Draft',
-                                'active' => 'Active',
-                                'completed' => 'Completed',
-                                'archived' => 'Archived',
-                            ])
-                            ->default('draft')
-                            ->required(),
-
-                        Forms\Components\Select::make('priority')
-                            ->label('Prioritas')
-                            ->options([
-                                'low' => 'Low',
-                                'medium' => 'Medium',
-                                'high' => 'High',
-                            ])
-                            ->default('medium')
-                            ->required(),
-
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Catatan')
-                            ->rows(3)
-                            ->placeholder('Catatan tambahan untuk assignment ini...'),
-                    ])->columns(2),
-
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
                         Forms\Components\Toggle::make('is_editable')
@@ -275,7 +248,7 @@ class KpiManagementResource extends Resource
         return $table
             ->recordUrl(null)
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                Tables\Columns\TextColumn::make('code_id')
                     ->label('ID KPI')
                     ->searchable()
                     ->sortable()
@@ -416,7 +389,6 @@ class KpiManagementResource extends Resource
                     ->color('info')
                     ->action(function (KelolaKPI $record) {
                         $newRecord = $record->replicate();
-                        $newRecord->id = $record->id . '-COPY-' . time();
                         $newRecord->save();
 
                         \Filament\Notifications\Notification::make()
