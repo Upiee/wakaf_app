@@ -9,6 +9,7 @@ class Divisi extends Model
     protected $table = 'divisis';
 
     protected $fillable = [
+        'kode',
         'nama',
     ];
 

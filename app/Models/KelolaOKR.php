@@ -10,8 +10,8 @@ class KelolaOKR extends Model
 {
     protected $table = 'kelola__o_k_r_s';
     protected $primaryKey = 'id';
-    public $incrementing = true; // Change to true since it's auto-incrementing
-    protected $keyType = 'int';
+    public $incrementing = false; // Changed to false karena kita pakai string ID
+    protected $keyType = 'string'; // Changed to string
 
     protected $fillable = [
         'activity',
@@ -143,6 +143,61 @@ class KelolaOKR extends Model
         } else {
             return 'not_started';
         }
+    }
+    
+    /**
+     * Generate auto ID untuk OKR berdasarkan assignment type
+     */
+    public static function generateAutoId($assignmentType, $targetId)
+    {
+        if ($assignmentType === 'divisi') {
+            // Format: OKR-DIV-001-001
+            $divisi = Divisi::find($targetId);
+            if (!$divisi) return null;
+            
+            $divisiCode = str_replace('DIV-', '', $divisi->kode); // Get 001 from DIV-001
+            
+            // Get last sequence untuk divisi ini
+            $lastOkr = self::where('id', 'like', "OKR-DIV-{$divisiCode}-%")
+                          ->orderBy('id', 'desc')
+                          ->first();
+            
+            $sequence = 1;
+            if ($lastOkr) {
+                // Extract sequence dari ID terakhir
+                $parts = explode('-', $lastOkr->id);
+                if (count($parts) >= 4) {
+                    $sequence = intval($parts[3]) + 1;
+                }
+            }
+            
+            return sprintf('OKR-DIV-%s-%03d', $divisiCode, $sequence);
+            
+        } elseif ($assignmentType === 'individual') {
+            // Format: OKR-IND-EMP00001-001
+            $user = User::find($targetId);
+            if (!$user) return null;
+            
+            $userCode = $user->kode; // EMP00001
+            
+            // Get last sequence untuk user ini
+            $lastOkr = self::where('id', 'like', "OKR-IND-{$userCode}-%")
+                          ->orderBy('id', 'desc')
+                          ->first();
+            
+            $sequence = 1;
+            if ($lastOkr) {
+                // Extract sequence dari ID terakhir
+                $parts = explode('-', $lastOkr->id);
+                if (count($parts) >= 4) {
+                    $sequence = intval($parts[3]) + 1;
+                }
+            }
+            
+            return sprintf('OKR-IND-%s-%03d', $userCode, $sequence);
+        }
+        
+        return null;
     }
 }
 

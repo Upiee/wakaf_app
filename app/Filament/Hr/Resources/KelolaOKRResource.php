@@ -26,31 +26,50 @@ class KelolaOKRResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Dasar OKR')
                     ->schema([
+                        Forms\Components\TextInput::make('id')
+                            ->label('ID OKR (Auto-Generated)')
+                            ->disabled()
+                            ->dehydrated()
+                            ->placeholder('Auto-generated: OKR-DIV-001-001 atau OKR-IND-EMP00001-001')
+                            ->helperText('ID otomatis dibuat berdasarkan tipe assignment dan sequence')
+                            ->default(function (callable $get) {
+                                // Generate ID berdasarkan assignment type
+                                return 'Auto-generated';
+                            }),
+                        Forms\Components\Select::make('assignment_type')
+                            ->label('Tipe Assignment Target')
+                            ->options([
+                                'divisi' => 'Target ke Divisi',
+                                'individual' => 'Target ke Karyawan',
+                            ])
+                            ->required()
+                            ->reactive()
+                            ->helperText('Setiap divisi dan karyawan memiliki kode masing-masing'),
+                        Forms\Components\Select::make('divisi_id')
+                            ->label('Pilih Divisi (dengan kode)')
+                            ->relationship('divisi', 'nama')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->kode . ' - ' . $record->nama)
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (callable $get) => $get('assignment_type') === 'divisi'),
+                        Forms\Components\Select::make('user_id')
+                            ->label('Pilih Karyawan (dengan kode)')
+                            ->relationship('user', 'name')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->kode . ' - ' . $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
+                            ->searchable(['name', 'email', 'kode'])
+                            ->preload()
+                            ->visible(fn (callable $get) => $get('assignment_type') === 'individual'),
                         Forms\Components\TextInput::make('activity')
                             ->required()
                             ->label('Objective (Tujuan)')
                             ->placeholder('Contoh: Menjadi perusahaan teknologi terdepan di Indonesia')
-                            ->helperText('Tujuan utama yang ingin dicapai'),
-                        
-                        Forms\Components\Select::make('tipe')
-                            ->options([
-                                'okr divisi' => 'OKR Divisi',
-                                'okr individu' => 'OKR Individu',
-                            ])
-                            ->required()
-                            ->label('Tipe OKR')
-                            ->helperText('Level OKR dalam organisasi'),
-                        
-                        Forms\Components\TextInput::make('output')
-                            ->label('Output/Hasil Utama')
-                            ->placeholder('Contoh: Meningkatkan revenue 25%, Market share 15%')
-                            ->helperText('Hasil utama yang diharapkan dari objective ini')
+                            ->helperText('Tujuan utama yang ingin dicapai')
                             ->columnSpan(2),
                     ])->columns(2),
                               
                     
                 Forms\Components\Section::make('Detail Progress OKR')
-                    ->description('Tambahkan detail progress dan dokumentasi untuk OKR ini')
+                    ->description('Sub Activities dengan periode dan catatan')
                     ->schema([
                         Forms\Components\Repeater::make('subActivities')
                             ->relationship()
@@ -94,16 +113,24 @@ class KelolaOKRResource extends Resource
                                     ->maxValue(100)
                                     ->suffix('%')
                                     ->default(0),
-                                Forms\Components\Select::make('status')
-                                    ->label('Status')
+                                Forms\Components\Select::make('periode')
+                                    ->label('Periode')
                                     ->options([
-                                        'not_started' => 'Belum Dimulai',
-                                        'in_progress' => 'Sedang Berjalan',
-                                        'completed' => 'Selesai',
-                                        'on_hold' => 'Ditunda',
+                                        '2025-Q1' => 'Q1 2025',
+                                        '2025-Q2' => 'Q2 2025',
+                                        '2025-Q3' => 'Q3 2025',
+                                        '2025-Q4' => 'Q4 2025',
+                                        '2025-H1' => 'H1 2025',
+                                        '2025-H2' => 'H2 2025',
+                                        '2025' => 'Tahunan 2025',
                                     ])
-                                    ->default('not_started')
-                                    ->required(),
+                                    ->required()
+                                    ->searchable(),
+                                Forms\Components\Textarea::make('catatan')
+                                    ->label('Catatan')
+                                    ->rows(2)
+                                    ->placeholder('Catatan tambahan...')
+                                    ->columnSpan(2),
                                 Forms\Components\Textarea::make('dokumen')
                                     ->label('Dokumen/Link')
                                     ->rows(1)
@@ -118,98 +145,6 @@ class KelolaOKRResource extends Resource
                             ->cloneable()
                             ->helperText('💡 Tambahkan detail progress dengan bobot untuk OKR ini. Total bobot harus = 100%'),
                     ]),
-
-                    // Form Konfigurasi    
-                Forms\Components\Section::make('Progress & Timeline')
-                    ->schema([
-                        Forms\Components\TextInput::make('progress')
-                            ->numeric()
-                            ->label('Progress Saat Ini (%)')
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('%')
-                            ->default(0)
-                            ->helperText('Progress akan dihitung otomatis dari sub-activities'),
-                        Forms\Components\Select::make('periode')
-                            ->label('Periode')
-                            ->options([
-                                '2025-Q1' => 'Q1 2025',
-                                '2025-Q2' => 'Q2 2025',
-                                '2025-Q3' => 'Q3 2025',
-                                '2025-Q4' => 'Q4 2025',
-                                '2025-H1' => 'H1 2025',
-                                '2025-H2' => 'H2 2025',
-                                '2025' => 'Tahunan 2025',
-                            ])
-                            ->searchable(),
-                        Forms\Components\TextInput::make('timeline')
-                            ->label('Timeline Target')
-                            ->placeholder('Contoh: Akhir Desember 2025'),
-                    ])->columns(2),
-                
-                // Form Assignment & Target    
-                Forms\Components\Section::make('Assignment & Target')
-                    ->schema([
-                        Forms\Components\Radio::make('assignment_type')
-                            ->label('Tipe Assignment')
-                            ->options([
-                                'divisi' => 'Assign ke Divisi (Semua anggota divisi)',
-                                'individual' => 'Assign ke Individual (Specific person)',
-                            ])
-                            ->default('divisi')
-                            ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('divisi_id', null) && $set('user_id', null)),
-                            
-                        Forms\Components\Select::make('divisi_id')
-                            ->label('Pilih Divisi')
-                            ->relationship('divisi', 'nama')
-                            ->searchable()
-                            ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'divisi')
-                            ->helperText(function (callable $get) {
-                                if ($get('divisi_id')) {
-                                    $divisi = \App\Models\Divisi::find($get('divisi_id'));
-                                    $count = $divisi ? $divisi->users()->count() : 0;
-                                    return "📊 {$count} karyawan akan menerima OKR ini";
-                                }
-                                return 'Pilih divisi untuk assignment';
-                            }),
-                            
-                        Forms\Components\Select::make('user_id')
-                            ->label('Pilih Karyawan')
-                            ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
-                            ->searchable(['name', 'email'])
-                            ->preload()
-                            ->visible(fn (callable $get) => $get('assignment_type') === 'individual')
-                            ->helperText('Pilih karyawan spesifik untuk assignment'),
-                            
-                        Forms\Components\Select::make('status')
-                            ->label('Status OKR')
-                            ->options([
-                                'draft' => 'Draft',
-                                'active' => 'Active',
-                                'completed' => 'Completed',
-                                'archived' => 'Archived',
-                            ])
-                            ->default('draft')
-                            ->required(),
-                            
-                        Forms\Components\Select::make('priority')
-                            ->label('Prioritas')
-                            ->options([
-                                'low' => 'Low',
-                                'medium' => 'Medium',
-                                'high' => 'High',
-                            ])
-                            ->default('medium')
-                            ->required(),
-                            
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Catatan')
-                            ->rows(3)
-                            ->placeholder('Catatan tambahan untuk assignment ini...'),
-                    ])->columns(2),            
 
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
@@ -231,16 +166,19 @@ class KelolaOKRResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                Tables\Columns\TextColumn::make('tipe')
-                    ->label('Tipe')
+                Tables\Columns\TextColumn::make('assignment_type')
+                    ->label('Tipe Assignment')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'okr divisi' => 'primary',
-                        'okr individu' => 'info',
+                        'divisi' => 'success',
+                        'individual' => 'warning',
                         default => 'gray',
                     })
-                    ->sortable(),
-                    // Form Konfigurasi
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'divisi' => 'Target ke Divisi',
+                        'individual' => 'Target ke Karyawan',
+                        default => $state,
+                    }),
                 Tables\Columns\TextColumn::make('activity')
                     ->label('Objective (Tujuan)')
                     ->searchable()
@@ -252,74 +190,18 @@ class KelolaOKRResource extends Resource
                         }
                         return $state;
                     }),
-                Tables\Columns\TextColumn::make('output')
-                    ->label('Output/Hasil')
-                    ->searchable()
-                    ->limit(30)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 30) {
-                            return null;
-                        }
-                        return $state;
-                    })
-                    ->placeholder('Belum diset'),
-                Tables\Columns\TextColumn::make('assignment_type')
-                    ->label('Assignment')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'divisi' => 'success',
-                        'individual' => 'warning',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'divisi' => 'Divisi',
-                        'individual' => 'Individual',
-                        default => $state,
-                    }),
                 Tables\Columns\TextColumn::make('target_info')
                     ->label('Target')
                     ->getStateUsing(function ($record) {
                         if ($record->assignment_type === 'divisi' && $record->divisi) {
                             $count = $record->divisi->users()->count();
-                            return $record->divisi->nama . " ({$count} members)";
+                            return $record->divisi->kode . ' - ' . $record->divisi->nama . " ({$count} members)";
                         } elseif ($record->assignment_type === 'individual' && $record->user) {
-                            return $record->user->name;
+                            return $record->user->kode . ' - ' . $record->user->name;
                         }
                         return 'Not assigned';
                     })
                     ->icon(fn ($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'draft' => 'gray',
-                        'active' => 'success',
-                        'completed' => 'info',
-                        'archived' => 'warning',
-                        default => 'gray',
-                    }),
-                Tables\Columns\TextColumn::make('priority')
-                    ->label('Priority')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'high' => 'danger',
-                        'medium' => 'warning',
-                        'low' => 'success',
-                        default => 'gray',
-                    }),
-                
-                
-                Tables\Columns\TextColumn::make('progress')
-                    ->label('Progress')
-                    ->suffix('%')
-                    ->sortable()
-                    ->color(fn ($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
-                    ->alignCenter(),
-                Tables\Columns\TextColumn::make('periode')
-                    ->label('Periode')
-                    ->badge()
-                    ->color('info'),
                 Tables\Columns\IconColumn::make('is_editable')
                     ->label('Status')
                     ->boolean()
@@ -334,34 +216,12 @@ class KelolaOKRResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('tipe')
+                SelectFilter::make('assignment_type')
                     ->options([
-                        'okr divisi' => 'OKR Divisi',
-                        'okr individu' => 'OKR Individu',
+                        'divisi' => 'Target ke Divisi',
+                        'individual' => 'Target ke Karyawan',
                     ])
-                    ->label('Tipe OKR'),
-                Tables\Filters\Filter::make('progress_range')
-                    ->form([
-                        Forms\Components\Select::make('progress_status')
-                            ->label('Status Progress')
-                            ->options([
-                                'low' => 'Di Bawah 60% (Perlu Perhatian)',
-                                'medium' => '60-79% (On Track)',
-                                'high' => '80%+ (Excellent)',
-                            ])
-                    ])
-                    ->query(function ($query, array $data) {
-                        if (!isset($data['progress_status'])) {
-                            return $query;
-                        }
-                        
-                        return match($data['progress_status']) {
-                            'low' => $query->where('progress', '<', 60),
-                            'medium' => $query->whereBetween('progress', [60, 79]),
-                            'high' => $query->where('progress', '>=', 80),
-                            default => $query,
-                        };
-                    }),
+                    ->label('Tipe Assignment'),
                 Tables\Filters\TernaryFilter::make('is_editable')
                     ->label('Status Edit')
                     ->boolean()

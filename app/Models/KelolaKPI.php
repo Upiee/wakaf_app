@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KelolaKPI extends Model
-{
+{    
     protected $table = 'kelola__k_p_i_s';
     protected $primaryKey = 'id';
-    public $incrementing = true;
-    protected $keyType = 'int';
+    public $incrementing = false; // Changed to false karena kita pakai string ID
+    protected $keyType = 'string'; // Changed to string
 
     protected $fillable = [
         'activity',
@@ -142,6 +142,61 @@ class KelolaKPI extends Model
         } else {
             return 'not_started';
         }
+    }
+    
+    /**
+     * Generate auto ID untuk KPI berdasarkan assignment type
+     */
+    public static function generateAutoId($assignmentType, $targetId)
+    {
+        if ($assignmentType === 'divisi') {
+            // Format: KPI-DIV-001-001
+            $divisi = Divisi::find($targetId);
+            if (!$divisi) return null;
+            
+            $divisiCode = str_replace('DIV-', '', $divisi->kode); // Get 001 from DIV-001
+            
+            // Get last sequence untuk divisi ini
+            $lastKpi = self::where('id', 'like', "KPI-DIV-{$divisiCode}-%")
+                          ->orderBy('id', 'desc')
+                          ->first();
+            
+            $sequence = 1;
+            if ($lastKpi) {
+                // Extract sequence dari ID terakhir (KPI-DIV-001-005 -> 5)
+                $parts = explode('-', $lastKpi->id);
+                if (count($parts) >= 4) {
+                    $sequence = intval($parts[3]) + 1;
+                }
+            }
+            
+            return sprintf('KPI-DIV-%s-%03d', $divisiCode, $sequence);
+            
+        } elseif ($assignmentType === 'individual') {
+            // Format: KPI-IND-EMP00001-001
+            $user = User::find($targetId);
+            if (!$user) return null;
+            
+            $userCode = $user->kode; // EMP00001
+            
+            // Get last sequence untuk user ini
+            $lastKpi = self::where('id', 'like', "KPI-IND-{$userCode}-%")
+                          ->orderBy('id', 'desc')
+                          ->first();
+            
+            $sequence = 1;
+            if ($lastKpi) {
+                // Extract sequence dari ID terakhir
+                $parts = explode('-', $lastKpi->id);
+                if (count($parts) >= 4) {
+                    $sequence = intval($parts[3]) + 1;
+                }
+            }
+            
+            return sprintf('KPI-IND-%s-%03d', $userCode, $sequence);
+        }
+        
+        return null;
     }
 }
 
