@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigIncrements('id'); // Auto-increment bigint primary key
             $table->string('activity');
             $table->float('bobot');
-            $table->string('output');
+            $table->string('output')->nullable();
             $table->text('indikator_progress')->nullable();
             $table->float('progress')->nullable();
             $table->text('dokumen')->nullable();

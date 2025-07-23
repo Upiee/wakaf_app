@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::create('kelola__o_k_r_s', function (Blueprint $table) {
             $table->bigIncrements('id'); // atau $table->bigInteger('id')->primary(); jika manual
             $table->string('activity');
-            $table->string('output');
+            $table->string('output')->nullable();
             $table->string('tipe')->default('okr'); 
             $table->timestamps();
         });
