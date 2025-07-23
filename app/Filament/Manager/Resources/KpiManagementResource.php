@@ -109,7 +109,7 @@ class KpiManagementResource extends Resource
                         Forms\Components\Select::make('divisi_id')
                             ->label('Pilih Divisi')
                             ->options(
-                                \App\Models\Divisi::all()->pluck('kode', 'nama', 'id')->map(fn($kode, $nama) => "{$kode} - {$nama}")->toArray()
+                                \App\Models\Divisi::options()
                             )
                             ->searchable()
                             ->preload()
