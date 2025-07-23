@@ -5,6 +5,7 @@ namespace App\Filament\Employee\Resources;
 use App\Filament\Employee\Resources\RealisasiOkrResource\Pages;
 use App\Models\RealisasiOkr;
 use App\Models\KelolaOKR;
+use App\Models\OkrSubActivity;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -29,13 +30,13 @@ class RealisasiOkrResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return null;
         }
-        
+
         $count = static::getEloquentQuery()->count();
-        
+
         return $count > 0 ? (string) $count : null;
     }
 
@@ -45,29 +46,29 @@ class RealisasiOkrResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return 'gray';
         }
-        
+
         // Hitung realisasi yang pending approval
         $pendingCount = static::getEloquentQuery()
             ->where('is_cutoff', true)
             ->whereNull('approved_at')
             ->count();
-            
+
         if ($pendingCount > 0) {
             return 'warning'; // Kuning jika ada yang pending
         }
-        
+
         $approvedCount = static::getEloquentQuery()
             ->whereNotNull('approved_at')
             ->count();
-            
+
         if ($approvedCount > 0) {
             return 'success'; // Hijau jika ada yang approved
         }
-        
+
         return 'info'; // Biru untuk draft
     }
 
@@ -75,7 +76,7 @@ class RealisasiOkrResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         return parent::getEloquentQuery()
             ->where('user_id', $user->id) // Hanya realisasi employee yang login
             ->orderBy('created_at', 'desc');
@@ -87,11 +88,11 @@ class RealisasiOkrResource extends Resource
             ->schema([
                 // Hidden field untuk divisi (auto-filled dengan divisi employee)
                 Forms\Components\Hidden::make('divisi_id')
-                    ->default(fn () => Auth::user()->divisi_id),
+                    ->default(fn() => Auth::user()->divisi_id),
 
                 // Hidden field untuk user_id (auto-filled dengan user yang login)
                 Forms\Components\Hidden::make('user_id')
-                    ->default(fn () => Auth::user()->id),
+                    ->default(fn() => Auth::user()->id),
 
                 Forms\Components\Select::make('okr_id')
                     ->label('🚀 OKR Saya')
@@ -99,9 +100,10 @@ class RealisasiOkrResource extends Resource
                         $user = Auth::user();
                         // Hanya OKR individual yang assigned ke employee ini
                         return KelolaOKR::where('user_id', $user->id)
-                                       ->where('assignment_type', 'individual')
-                                       ->whereIn('tipe', ['okr', 'okr individu'])
-                                       ->pluck('activity', 'id');
+                            ->where('assignment_type', 'individual')
+                            ->whereNotNull('parent_id')
+                            ->whereIn('tipe', ['okr', 'okr individu'])
+                            ->pluck('activity', 'id');
                     })
                     ->required()
                     ->searchable()
@@ -110,40 +112,66 @@ class RealisasiOkrResource extends Resource
                     ->live()
                     ->afterStateUpdated(function ($state, $set) {
                         // Cek apakah sudah ada realisasi untuk OKR ini di periode yang sama
+                        // $user = Auth::user();
+                        // $periode = request()->input('periode', 'Q3-2025');
+
+                        // if ($state) {
+                        //     $exists = RealisasiOkr::where('okr_id', $state)
+                        //         ->where('user_id', $user->id)
+                        //         ->where('periode', $periode)
+                        //         ->exists();
+
+                        //     if ($exists) {
+                        //         // Reset field jika sudah ada
+                        //         $set('okr_id', null);
+                        //         // Notification akan ditampilkan via validation
+                        //     }
+                        // }
+                    }),
+
+                Forms\Components\Select::make('okr_sub_activity_id')
+                    ->label('Indikator OKR')
+                    ->options(function (callable $get) {
+                        $kpiId = $get('okr_id');
+
+                        if (!$kpiId) {
+                            return [];
+                        }
+
+                        return OkrSubActivity::where('okr_id', $kpiId)
+                            ->pluck('indikator', 'id')
+                            ->mapWithKeys(function ($item, $key) {
+                                return [$key => $item];
+                            })
+                            ->toArray() ?? [];
+                    })
+                    ->placeholder('Pilih sub-activity (jika ada)')
+                    ->helperText('Opsional, jika KPI memiliki sub-activity')
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set, $get) {
+                        // Cek apakah sudah ada realisasi untuk sub-activity ini di periode yang sama
                         $user = Auth::user();
                         $periode = request()->input('periode', 'Q3-2025');
-                        
-                        if ($state) {
-                            $exists = RealisasiOkr::where('okr_id', $state)
-                                                  ->where('user_id', $user->id)
-                                                  ->where('periode', $periode)
-                                                  ->exists();
-                            
-                            if ($exists) {
-                                // Reset field jika sudah ada
-                                $set('okr_id', null);
-                                // Notification akan ditampilkan via validation
-                            }
-                        }
+                        $kpiId = $get('kpi_id');
+
+                        // if ($state && $kpiId) {
+                        //     $exists = RealisasiKpi::where('kpi_sub_activity_id', $state)
+                        //         ->where('user_id', $user->id)
+                        //         ->where('periode', $periode)
+                        //         ->exists();
+
+                        //     if ($exists) {
+                        //         // Reset field jika sudah ada
+                        //         $set('kpi_sub_activity_id', null);
+                        //         // Notification akan ditampilkan via validation
+                        //     }
+                        // }
                     })
-                    ->rules([
-                        function () {
-                            return function (string $attribute, $value, $fail) {
-                                $user = Auth::user();
-                                $periode = request()->input('periode', 'Q3-2025');
-                                
-                                // Cek duplicate entry
-                                $exists = RealisasiOkr::where('okr_id', $value)
-                                                      ->where('user_id', $user->id)
-                                                      ->where('periode', $periode)
-                                                      ->exists();
-                                
-                                if ($exists) {
-                                    $fail('Anda sudah mengisi realisasi untuk OKR ini pada periode yang sama.');
-                                }
-                            };
-                        }
-                    ]),
+                    ->required()
+                    ->searchable()
+                    ->placeholder('Pilih sub-activity (jika ada)')
+                    ->helperText('Opsional, jika KPI memiliki sub-activity')
+                    ->live(),
 
                 Forms\Components\TextInput::make('nilai')
                     ->label('Realisasi OKR (%)')
@@ -174,10 +202,10 @@ class RealisasiOkrResource extends Resource
                         if ($okrId && $state) {
                             $user = Auth::user();
                             $exists = RealisasiOkr::where('okr_id', $okrId)
-                                                  ->where('user_id', $user->id)
-                                                  ->where('periode', $state)
-                                                  ->exists();
-                            
+                                ->where('user_id', $user->id)
+                                ->where('periode', $state)
+                                ->exists();
+
                             if ($exists) {
                                 $set('okr_id', null);
                             }
@@ -223,7 +251,7 @@ class RealisasiOkrResource extends Resource
 
                 Tables\Columns\TextColumn::make('nilai')
                     ->label('Realisasi (%)')
-                    ->formatStateUsing(fn ($state) => $state . '%')
+                    ->formatStateUsing(fn($state) => $state . '%')
                     ->sortable()
                     ->badge()
                     ->color(function ($state) {
@@ -309,19 +337,19 @@ class RealisasiOkrResource extends Resource
                         return $query
                             ->when(
                                 $data['tanggal_dari'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['tanggal_sampai'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                
+
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => !$record->is_cutoff && !$record->approved_at)
+                    ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
                     ->tooltip(function ($record) {
                         if ($record->is_cutoff) {
                             return 'Data sudah final dan tidak dapat diubah';
@@ -331,9 +359,9 @@ class RealisasiOkrResource extends Resource
                         }
                         return 'Edit realisasi';
                     }),
-                
+
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($record) => !$record->is_cutoff && !$record->approved_at)
+                    ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
                     ->tooltip(function ($record) {
                         if ($record->is_cutoff) {
                             return 'Data sudah final dan tidak dapat dihapus';
@@ -349,13 +377,13 @@ class RealisasiOkrResource extends Resource
                     ->label('Set Final')
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
-                    ->visible(fn ($record) => !$record->is_cutoff && !$record->approved_at)
+                    ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
                     ->requiresConfirmation()
                     ->modalHeading('Set Data Final')
                     ->modalDescription('Apakah Anda yakin ingin menetapkan data ini sebagai final? Setelah final, data tidak dapat diubah lagi.')
                     ->action(function ($record) {
                         $record->update(['is_cutoff' => true]);
-                        
+
                         Notification::make()
                             ->success()
                             ->title('Data berhasil di-set final')

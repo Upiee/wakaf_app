@@ -93,4 +93,26 @@ class OkrSubActivity extends Model
             default => 'Unknown'
         };
     }
+
+    public function realisasi()
+    {
+        return $this->hasMany(RealisasiOkr::class, 'okr_sub_activity_id');
+    }
+
+    public function getRealisasiKpiTotalAttribute(): float
+    {
+        $totalNilai = $this->realisasi()->sum('nilai');
+        $totalBobot = $this->bobot;
+
+        if ($totalBobot <= 0) {
+            return 0;
+        }
+
+        return ($totalNilai * $totalBobot) / 100;
+    }
+
+    public function getProgressPercentageAttribute($value): float
+    {
+        return $this->realisasi_kpi_total ?? 0;
+    }
 }

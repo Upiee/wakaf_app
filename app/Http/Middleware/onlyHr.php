@@ -13,9 +13,16 @@ class onlyHr
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !in_array($request->user()->role, ['hr', 'admin'])) {
+        if (!$request->user()) {
             abort(403, 'Unauthorized - HR Access Required');
         }
+
+        $role = $request->user()->role;
+        // strpos
+        if (!str_contains($role, 'hr') && !str_contains($role, 'admin')) {
+            abort(403, 'Unauthorized - HR Access Required');
+        }
+
         return $next($request);
     }
 }

@@ -24,6 +24,19 @@ class KelolaOKRResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Section::make('Pilih Parent / KPI Divisi')
+                    ->description('Jika ini adalah KPI utama, biarkan kosong. Jika ini adalah sub-KPI, pilih KPI induk.')
+                    ->schema([
+                        Forms\Components\Select::make('parent_id')
+                            ->label('KPI Induk')
+                            // ->relationship('parent', 'activity')
+                            ->options(KelolaOKR::options())
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Pilih KPI Induk (jika ada)')
+                            ->helperText('Pilih KPI induk jika ini adalah sub-KPI'),
+                    ]),
+
                 Forms\Components\Section::make('Informasi Dasar OKR')
                     ->schema([
                         Forms\Components\Select::make('assignment_type')
@@ -276,6 +289,7 @@ class KelolaOKRResource extends Resource
                     ->label('Progress')
                     ->suffix('%')
                     ->sortable()
+                    ->getStateUsing(fn($record) => $record->achievement ?? 0)
                     ->color(fn($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
                     ->alignCenter(),
                 Tables\Columns\TextColumn::make('periode')

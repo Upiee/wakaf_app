@@ -108,6 +108,11 @@ class KpiSubActivity extends Model
             return 0;
         }
 
-        return $totalNilai * $totalBobot / 100;
+        return ($totalNilai * $totalBobot) / 100;
+    }
+
+    public function getProgressPercentageAttribute($value): float
+    {
+        return $this->realisasi_kpi_total ?? 0;
     }
 }

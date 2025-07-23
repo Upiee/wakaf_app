@@ -16,6 +16,7 @@ class KelolaOKR extends Model
     protected $fillable = [
         'activity',
         'output',
+        'parent_id',
         'bobot',
         'indikator_progress',
         'progress',
@@ -38,6 +39,15 @@ class KelolaOKR extends Model
     protected $attributes = [
         'tipe' => 'okr',
     ];
+
+    public static function options()
+    {
+        return self::whereNull('parent_id')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->id => "{$item->divisi->kode} - {$item->activity}"];
+            });
+    }
 
     public static function boot()
     {
@@ -187,6 +197,40 @@ class KelolaOKR extends Model
         } else {
             return 'not_started';
         }
+    }
+
+    public function getAchievementAttribute(): float
+    {
+        $subActivities = $this->subActivities()->where('is_active', true)->get();   
+
+        if ($subActivities->isEmpty()) {
+            return 0;
+        }
+
+        $totalAchievement = 0;
+        
+        foreach ($subActivities as $subActivity) {
+            $achievement = $subActivity->realisasi_kpi_total ?? 0; // Default to 0 if no achievement
+            $totalAchievement += $achievement;
+        }
+
+        $childrens = $this->childrens()->get();
+        if ($childrens->count() > 0) {
+            foreach ($childrens as $child) {
+                $totalAchievement += $child->achievement;
+            }
+        }
+
+        if ($childrens->count() > 0) {
+            $totalAchievement = $totalAchievement / ($childrens->count());
+        }
+
+        return round($this->progress + $totalAchievement, 2);
+    }
+
+    public function childrens()
+    {
+        return $this->hasMany(KelolaOKR::class, 'parent_id', 'id');
     }
 }
 

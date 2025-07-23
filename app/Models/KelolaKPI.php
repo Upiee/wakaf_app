@@ -14,6 +14,7 @@ class KelolaKPI extends Model
 
     protected $fillable = [
         'activity',
+        'parent_id',
         'bobot',
         'output',
         'indikator_progress',
@@ -37,6 +38,15 @@ class KelolaKPI extends Model
     protected $attributes = [
         'tipe' => 'kpi',
     ];
+
+    public static function options()
+    {
+        return self::whereNull('parent_id')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->id => "{$item->divisi->kode} - {$item->activity}"];
+            });
+    }
 
     public static function boot()
     {
@@ -124,20 +134,20 @@ class KelolaKPI extends Model
     public function scopeAssignedToDivisi($query, $divisiId)
     {
         return $query->where('assignment_type', 'divisi')
-                    ->where('divisi_id', $divisiId);
+            ->where('divisi_id', $divisiId);
     }
 
     public function scopeAssignedToUser($query, $userId)
     {
-        return $query->where(function($q) use ($userId) {
+        return $query->where(function ($q) use ($userId) {
             $q->where('assignment_type', 'individual')
-              ->where('user_id', $userId)
-              ->orWhere(function($subQ) use ($userId) {
-                  $subQ->where('assignment_type', 'divisi')
-                       ->whereHas('divisi.users', function($userQ) use ($userId) {
-                           $userQ->where('users.id', $userId);
-                       });
-              });
+                ->where('user_id', $userId)
+                ->orWhere(function ($subQ) use ($userId) {
+                    $subQ->where('assignment_type', 'divisi')
+                        ->whereHas('divisi.users', function ($userQ) use ($userId) {
+                            $userQ->where('users.id', $userId);
+                        });
+                });
         });
     }
 
@@ -145,7 +155,7 @@ class KelolaKPI extends Model
     public function calculateTotalProgress(): float
     {
         $subActivities = $this->subActivities()->where('is_active', true)->get();
-        
+
         if ($subActivities->isEmpty()) {
             return 0;
         }
@@ -160,10 +170,10 @@ class KelolaKPI extends Model
         }
 
         $averageProgress = $totalWeight > 0 ? $totalWeightedProgress / $totalWeight : 0;
-        
+
         // Update main KPI progress
         $this->update(['progress' => $averageProgress]);
-        
+
         return $averageProgress;
     }
 
@@ -171,7 +181,7 @@ class KelolaKPI extends Model
     public function getCompletionStatusAttribute(): string
     {
         $subActivities = $this->subActivities()->where('is_active', true)->get();
-        
+
         if ($subActivities->isEmpty()) {
             return 'no_sub_activities';
         }
@@ -190,23 +200,36 @@ class KelolaKPI extends Model
 
     public function getAchievementAttribute(): float
     {
-        $subActivities = $this->subActivities()->where('is_active', true)->get();   
+        $subActivities = $this->subActivities()->where('is_active', true)->get();
 
         if ($subActivities->isEmpty()) {
             return 0;
         }
 
         $totalAchievement = 0;
-        
+
         foreach ($subActivities as $subActivity) {
             $achievement = $subActivity->realisasi_kpi_total ?? 0; // Default to 0 if no achievement
             $totalAchievement += $achievement;
         }
 
-        $totalBobot = $subActivities->sum('bobot') ?: 1; // Avoid division by zero
+        $childrens = $this->childrens()->where('is_active', true)->get();
 
-        return $totalAchievement / $totalBobot * 100; // Return as percentage
+        if ($childrens->count() > 0) {
+            foreach ($childrens as $child) {
+                $totalAchievement += $child->achievement;
+            }
+        }
+
+        if ($childrens->count() > 0) {
+            $totalAchievement = $totalAchievement / ($childrens->count());
+        }
+
+        return round($this->progress + $totalAchievement, 2);
+    }
+
+    public function childrens()
+    {
+        return $this->hasMany(KelolaKPI::class, 'parent_id', 'id');
     }
 }
-
-

@@ -11,6 +11,7 @@ class RealisasiOkr extends Model
     protected $fillable = [
         'divisi_id',
         'okr_id',
+        'okr_sub_activity_id',
         'user_id', // untuk tracking siapa yang input
         'nilai',
         'periode',
@@ -38,6 +39,11 @@ class RealisasiOkr extends Model
             return 'pending_approval';
         }
         return 'draft';
+    }
+
+    public function indikator()
+    {
+        return $this->belongsTo(OkrSubActivity::class, 'okr_sub_activity_id', 'id');
     }
 
     // Virtual attribute: Apakah masih bisa diedit

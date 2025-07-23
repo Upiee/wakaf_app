@@ -264,6 +264,7 @@ class OkrManagementResource extends Resource
                     ->label('Progress')
                     ->suffix('%')
                     ->sortable()
+                    ->getStateUsing(fn($record) => $record->achievement ?? 0)
                     ->color(fn($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
                     ->alignCenter(),
                 Tables\Columns\TextColumn::make('periode')

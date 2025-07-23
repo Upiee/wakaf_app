@@ -25,6 +25,21 @@ class KelolaKPIResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Section::make('Pilih Parent / KPI Divisi')
+                    ->description('Jika ini adalah KPI utama, biarkan kosong. Jika ini adalah sub-KPI, pilih KPI induk.')
+                    ->schema([
+                        Forms\Components\Select::make('parent_id')
+                            ->label('KPI Induk')
+                            // ->relationship('parent', 'activity')
+                            ->options(KelolaKPI::options([
+                                'parent_id' => null
+                            ]))
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Pilih KPI Induk (jika ada)')
+                            ->helperText('Pilih KPI induk jika ini adalah sub-KPI'),
+                    ]),
+
                 Forms\Components\Section::make('Informasi Dasar KPI')
                     ->schema([
                         Forms\Components\Select::make('assignment_type')
