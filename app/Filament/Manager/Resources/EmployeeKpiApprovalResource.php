@@ -22,7 +22,7 @@ class EmployeeKpiApprovalResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-check-circle';
     protected static ?string $navigationGroup = 'Team Management';
     protected static ?string $navigationLabel = 'KPI Approval';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 12;
 
     /**
      * Get navigation badge untuk menampilkan jumlah KPI
@@ -184,12 +184,14 @@ class EmployeeKpiApprovalResource extends Resource
                     ->label('Approval Status')
                     ->colors([
                         'success' => 'approved',
+                        'danger' => 'rejected',
                         'warning' => 'pending_approval',
                         'secondary' => 'draft',
                     ])
                     ->formatStateUsing(function ($state) {
                         return match($state) {
                             'approved' => 'Approved',
+                            'rejected' => 'Rejected',
                             'pending_approval' => 'Pending Approval',
                             'draft' => 'Draft',
                             default => 'Unknown'
@@ -210,12 +212,17 @@ class EmployeeKpiApprovalResource extends Resource
             ->filters([
                 Tables\Filters\Filter::make('pending_approval')
                     ->label('Pending Approval')
-                    ->query(fn (Builder $query) => $query->whereNull('approved_at'))
+                    ->query(fn (Builder $query) => $query->whereNull('approved_at')->whereNull('rejected_at'))
                     ->toggle(),
 
                 Tables\Filters\Filter::make('approved')
                     ->label('Approved')
                     ->query(fn (Builder $query) => $query->whereNotNull('approved_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('rejected')
+                    ->label('Rejected')
+                    ->query(fn (Builder $query) => $query->whereNotNull('rejected_at'))
                     ->toggle(),
 
                 Tables\Filters\SelectFilter::make('user_id')
@@ -246,10 +253,10 @@ class EmployeeKpiApprovalResource extends Resource
                     ->label('Quick Approve')
                     ->icon('heroicon-o-check')
                     ->color('success')
-                    ->visible(fn ($record) => is_null($record->approved_at))
+                    ->visible(fn ($record) => is_null($record->approved_at) && is_null($record->rejected_at))
                     ->requiresConfirmation()
-                    ->modalHeading('Approve OKR Realization')
-                    ->modalDescription('Are you sure you want to approve this OKR realization?')
+                    ->modalHeading('Approve KPI Realization')
+                    ->modalDescription('Are you sure you want to approve this KPI realization?')
                     ->action(function ($record) {
                         $record->update([
                             'approved_by' => Auth::user()->id,
@@ -258,10 +265,38 @@ class EmployeeKpiApprovalResource extends Resource
                         
                         Notification::make()
                             ->success()
-                            ->title('OKR Approved')
-                            ->body('OKR realization has been approved successfully.')
+                            ->title('KPI Approved')
+                            ->body('KPI realization has been approved successfully.')
                             ->send();
                     }),
+
+                Tables\Actions\Action::make('quick_reject')
+                    ->label('Reject')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn ($record) => is_null($record->approved_at) && is_null($record->rejected_at))
+                    ->form([
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('Rejection Reason')
+                            ->placeholder('Please provide reason for rejection...')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->update([
+                            'rejected_by' => Auth::user()->id,
+                            'rejected_at' => now(),
+                            'rejection_reason' => $data['rejection_reason'],
+                        ]);
+                        
+                        Notification::make()
+                            ->warning()
+                            ->title('KPI Rejected')
+                            ->body('KPI realization has been rejected. Employee will be notified.')
+                            ->send();
+                    })
+                    ->modalHeading('Reject KPI Realization')
+                    ->modalDescription('Please provide a reason for rejecting this KPI realization:'),
 
                 Tables\Actions\Action::make('view_approved')
                     ->label('View Details')

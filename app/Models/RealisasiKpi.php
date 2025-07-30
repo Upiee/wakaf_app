@@ -19,11 +19,15 @@ class RealisasiKpi extends Model
         'is_cutoff',
         'approved_by',
         'approved_at',
+        'rejected_by',
+        'rejected_at',
+        'rejection_reason',
     ];
 
     protected $casts = [
         'is_cutoff' => 'boolean',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     // Virtual attributes untuk approval logic
@@ -35,6 +39,9 @@ class RealisasiKpi extends Model
         if ($this->approved_at) {
             return 'approved';
         }
+        if ($this->rejected_at) {
+            return 'rejected';
+        }
         if ($this->is_cutoff) {
             return 'pending_approval';
         }
@@ -44,7 +51,10 @@ class RealisasiKpi extends Model
     // Virtual attribute: Apakah masih bisa diedit
     public function getIsEditableAttribute()
     {
-        return !$this->is_cutoff && !$this->approved_at;
+        // Bisa edit jika:
+        // 1. Masih draft (belum final dan belum approved)
+        // 2. Sudah di-reject (bisa diperbaiki)
+        return (!$this->is_cutoff && !$this->approved_at) || $this->rejected_at;
     }
 
     // Virtual attribute: Apakah bisa di-approve
@@ -131,6 +141,11 @@ class RealisasiKpi extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by', 'id');
+    }
+
+    public function rejectedBy()
+    {
+        return $this->belongsTo(User::class, 'rejected_by', 'id');
     }
 
     // Scopes

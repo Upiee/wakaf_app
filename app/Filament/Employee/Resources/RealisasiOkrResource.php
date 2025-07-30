@@ -51,10 +51,20 @@ class RealisasiOkrResource extends Resource
             return 'gray';
         }
 
+        // Hitung yang di-reject (prioritas tertinggi)
+        $rejectedCount = static::getEloquentQuery()
+            ->whereNotNull('rejected_at')
+            ->count();
+
+        if ($rejectedCount > 0) {
+            return 'danger'; // Merah jika ada yang di-reject
+        }
+
         // Hitung realisasi yang pending approval
         $pendingCount = static::getEloquentQuery()
             ->where('is_cutoff', true)
             ->whereNull('approved_at')
+            ->whereNull('rejected_at')
             ->count();
 
         if ($pendingCount > 0) {
@@ -201,13 +211,39 @@ class RealisasiOkrResource extends Resource
                         $okrId = $get('okr_id');
                         if ($okrId && $state) {
                             $user = Auth::user();
-                            $exists = RealisasiOkr::where('okr_id', $okrId)
+                            $existingRecord = RealisasiOkr::where('okr_id', $okrId)
                                 ->where('user_id', $user->id)
                                 ->where('periode', $state)
-                                ->exists();
+                                ->first();
 
-                            if ($exists) {
-                                $set('okr_id', null);
+                            if ($existingRecord) {
+                                // Jika sedang dalam mode edit dan ini adalah record yang sama, izinkan
+                                $currentRecordId = request()->route('record');
+                                if ($currentRecordId && $existingRecord->id == $currentRecordId) {
+                                    return; // Izinkan edit record yang sama
+                                }
+                                
+                                // Jika data sudah approved atau pending approval (belum di-reject), reset
+                                if ($existingRecord->approved_at || 
+                                    ($existingRecord->is_cutoff && !$existingRecord->rejected_at)) {
+                                    $set('okr_id', null);
+                                    
+                                    Notification::make()
+                                        ->warning()
+                                        ->title('OKR sudah ada!')
+                                        ->body('OKR ini sudah memiliki realisasi untuk periode yang sama dan sudah disetujui/pending approval.')
+                                        ->send();
+                                }
+                                
+                                // Jika data dalam draft atau di-reject, izinkan (tidak reset)
+                                if (!$existingRecord->is_cutoff || $existingRecord->rejected_at) {
+                                    // Beri notifikasi info saja
+                                    Notification::make()
+                                        ->info()
+                                        ->title('Info')
+                                        ->body('Anda dapat mengedit realisasi yang sudah ada untuk OKR ini.')
+                                        ->send();
+                                }
                             }
                         }
                     }),
@@ -283,16 +319,37 @@ class RealisasiOkrResource extends Resource
                         return 'Data masih bisa diubah';
                     }),
 
-                Tables\Columns\TextColumn::make('approved_at')
-                    ->label('Approved')
-                    ->dateTime()
-                    ->sortable()
-                    ->placeholder('Belum di-approve')
+                Tables\Columns\BadgeColumn::make('approval_status')
+                    ->label('Status Approval')
+                    ->colors([
+                        'success' => 'approved',
+                        'danger' => 'rejected', 
+                        'warning' => 'pending_approval',
+                        'secondary' => 'draft',
+                    ])
+                    ->formatStateUsing(function ($state) {
+                        return match($state) {
+                            'approved' => 'Disetujui',
+                            'rejected' => 'Ditolak',
+                            'pending_approval' => 'Menunggu Persetujuan',
+                            'draft' => 'Draft',
+                            default => 'Unknown'
+                        };
+                    })
                     ->tooltip(function ($record) {
                         if ($record->approved_at) {
-                            return 'Di-approve pada: ' . $record->approved_at->format('d M Y H:i');
+                            return 'Disetujui pada: ' . $record->approved_at->format('d M Y H:i') . 
+                                   ' oleh ' . ($record->approvedBy->name ?? 'Manager');
                         }
-                        return 'Belum di-approve oleh manager';
+                        if ($record->rejected_at) {
+                            return 'Ditolak pada: ' . $record->rejected_at->format('d M Y H:i') . 
+                                   ' oleh ' . ($record->rejectedBy->name ?? 'Manager') .
+                                   (isset($record->rejection_reason) ? "\nAlasan: " . $record->rejection_reason : '');
+                        }
+                        if ($record->is_cutoff) {
+                            return 'Menunggu persetujuan manager';
+                        }
+                        return 'Masih dalam tahap draft';
                     }),
 
                 Tables\Columns\TextColumn::make('keterangan')
@@ -326,6 +383,21 @@ class RealisasiOkrResource extends Resource
                         'Q4-2025' => 'Q4-2025',
                     ]),
 
+                Tables\Filters\Filter::make('pending_approval')
+                    ->label('Menunggu Persetujuan')
+                    ->query(fn (Builder $query) => $query->where('is_cutoff', true)->whereNull('approved_at')->whereNull('rejected_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('approved')
+                    ->label('Disetujui')
+                    ->query(fn (Builder $query) => $query->whereNotNull('approved_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('rejected')
+                    ->label('Ditolak')
+                    ->query(fn (Builder $query) => $query->whereNotNull('rejected_at'))
+                    ->toggle(),
+
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('tanggal_dari')
@@ -349,25 +421,45 @@ class RealisasiOkrResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
+                    ->visible(fn($record) => $record->is_editable)
                     ->tooltip(function ($record) {
-                        if ($record->is_cutoff) {
-                            return 'Data sudah final dan tidak dapat diubah';
+                        if ($record->approval_status === 'rejected') {
+                            return 'Edit dan submit ulang realisasi yang ditolak';
                         }
-                        if ($record->approved_at) {
-                            return 'Data sudah di-approve dan tidak dapat diubah';
+                        if (!$record->is_editable) {
+                            return 'Data sudah final atau sudah di-approve dan tidak dapat diubah';
                         }
                         return 'Edit realisasi';
                     }),
 
+                Tables\Actions\Action::make('resubmit')
+                    ->label('Submit Ulang')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->visible(fn($record) => $record->approval_status === 'rejected')
+                    ->action(function ($record) {
+                        $record->update([
+                            'rejected_by' => null,
+                            'rejected_at' => null,
+                            'rejection_reason' => null,
+                            'is_cutoff' => true, // Set final untuk review ulang
+                        ]);
+                        
+                        Notification::make()
+                            ->success()
+                            ->title('Berhasil Submit Ulang')
+                            ->body('Realisasi OKR telah disubmit ulang untuk persetujuan manager.')
+                            ->send();
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Submit Ulang Realisasi OKR')
+                    ->modalDescription('Apakah Anda yakin ingin submit ulang realisasi OKR ini untuk persetujuan manager?'),
+
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
+                    ->visible(fn($record) => $record->is_editable)
                     ->tooltip(function ($record) {
-                        if ($record->is_cutoff) {
-                            return 'Data sudah final dan tidak dapat dihapus';
-                        }
-                        if ($record->approved_at) {
-                            return 'Data sudah di-approve dan tidak dapat dihapus';
+                        if (!$record->is_editable) {
+                            return 'Data sudah final atau sudah di-approve dan tidak dapat dihapus';
                         }
                         return 'Hapus realisasi';
                     }),

@@ -22,7 +22,7 @@ class EmployeeOkrApprovalResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
     protected static ?string $navigationGroup = 'Team Management';
     protected static ?string $navigationLabel = 'OKR Approval';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 13;
 
     /**
      * Get navigation badge untuk menampilkan jumlah KPI
@@ -182,15 +182,19 @@ class EmployeeOkrApprovalResource extends Resource
 
                 Tables\Columns\BadgeColumn::make('approved_at')
                     ->label('Approval Status')
-                    ->formatStateUsing(function ($state) {
-                        if ($state) {
+                    ->formatStateUsing(function ($record) {
+                        if ($record->approved_at) {
                             return 'Approved';
+                        }
+                        if ($record->rejected_at) {
+                            return 'Rejected';
                         }
                         return 'Pending';
                     })
                     ->colors([
-                        'success' => fn ($state) => $state !== null,
-                        'warning' => fn ($state) => $state === null,
+                        'success' => fn ($record) => $record->approved_at !== null,
+                        'danger' => fn ($record) => $record->rejected_at !== null,
+                        'warning' => fn ($record) => $record->approved_at === null && $record->rejected_at === null,
                     ]),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -201,12 +205,17 @@ class EmployeeOkrApprovalResource extends Resource
             ->filters([
                 Tables\Filters\Filter::make('pending_approval')
                     ->label('Pending Approval')
-                    ->query(fn (Builder $query) => $query->whereNull('approved_at'))
+                    ->query(fn (Builder $query) => $query->whereNull('approved_at')->whereNull('rejected_at'))
                     ->toggle(),
 
                 Tables\Filters\Filter::make('approved')
                     ->label('Approved')
                     ->query(fn (Builder $query) => $query->whereNotNull('approved_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('rejected')
+                    ->label('Rejected')
+                    ->query(fn (Builder $query) => $query->whereNotNull('rejected_at'))
                     ->toggle(),
 
                 Tables\Filters\SelectFilter::make('user_id')
@@ -237,7 +246,7 @@ class EmployeeOkrApprovalResource extends Resource
                     ->label('Quick Approve')
                     ->icon('heroicon-o-check')
                     ->color('success')
-                    ->visible(fn ($record) => is_null($record->approved_at))
+                    ->visible(fn ($record) => is_null($record->approved_at) && is_null($record->rejected_at))
                     ->requiresConfirmation()
                     ->modalHeading('Approve OKR Realization')
                     ->modalDescription('Are you sure you want to approve this OKR realization?')
@@ -253,6 +262,34 @@ class EmployeeOkrApprovalResource extends Resource
                             ->body('OKR realization has been approved successfully.')
                             ->send();
                     }),
+
+                Tables\Actions\Action::make('quick_reject')
+                    ->label('Reject')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn ($record) => is_null($record->approved_at) && is_null($record->rejected_at))
+                    ->form([
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('Rejection Reason')
+                            ->placeholder('Please provide reason for rejection...')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->update([
+                            'rejected_by' => Auth::user()->id,
+                            'rejected_at' => now(),
+                            'rejection_reason' => $data['rejection_reason'],
+                        ]);
+                        
+                        Notification::make()
+                            ->warning()
+                            ->title('OKR Rejected')
+                            ->body('OKR realization has been rejected. Employee will be notified.')
+                            ->send();
+                    })
+                    ->modalHeading('Reject OKR Realization')
+                    ->modalDescription('Please provide a reason for rejecting this OKR realization:'),
 
                 Tables\Actions\Action::make('view_approved')
                     ->label('View Details')

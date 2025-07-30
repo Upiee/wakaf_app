@@ -51,10 +51,20 @@ class RealisasiKpiResource extends Resource
             return 'gray';
         }
 
+        // Hitung yang di-reject (prioritas tertinggi)
+        $rejectedCount = static::getEloquentQuery()
+            ->whereNotNull('rejected_at')
+            ->count();
+
+        if ($rejectedCount > 0) {
+            return 'danger'; // Merah jika ada yang di-reject
+        }
+
         // Hitung realisasi yang pending approval
         $pendingCount = static::getEloquentQuery()
             ->where('is_cutoff', true)
             ->whereNull('approved_at')
+            ->whereNull('rejected_at')
             ->count();
 
         if ($pendingCount > 0) {
@@ -177,14 +187,34 @@ class RealisasiKpiResource extends Resource
                                 $user = Auth::user();
                                 $periode = request()->input('periode', 'Q3-2025');
 
-                                // Cek duplicate entry
-                                $exists = RealisasiKpi::where('kpi_id', $value)
+                                // Cek duplicate entry, tapi izinkan edit jika data di-reject
+                                $existingRecord = RealisasiKpi::where('kpi_id', $value)
                                     ->where('user_id', $user->id)
                                     ->where('periode', $periode)
-                                    ->exists();
+                                    ->first();
 
-                                if ($exists) {
-                                    $fail('Anda sudah mengisi realisasi untuk KPI ini pada periode yang sama.');
+                                if ($existingRecord) {
+                                    // Jika sedang dalam mode edit dan ini adalah record yang sama, izinkan
+                                    $currentRecordId = request()->route('record');
+                                    if ($currentRecordId && $existingRecord->id == $currentRecordId) {
+                                        return; // Izinkan edit record yang sama
+                                    }
+                                    
+                                    // Jika data sudah approved, tidak boleh buat baru
+                                    if ($existingRecord->approved_at) {
+                                        $fail('KPI ini sudah disetujui untuk periode yang sama. Tidak dapat membuat realisasi baru.');
+                                    }
+                                    
+                                    // Jika data pending approval (belum di-reject), tidak boleh buat baru
+                                    if ($existingRecord->is_cutoff && !$existingRecord->rejected_at) {
+                                        $fail('KPI ini sedang menunggu persetujuan untuk periode yang sama. Tidak dapat membuat realisasi baru.');
+                                    }
+                                    
+                                    // Jika data dalam draft atau di-reject, beri peringatan tapi masih izinkan
+                                    if (!$existingRecord->is_cutoff || $existingRecord->rejected_at) {
+                                        // Izinkan, karena bisa edit data draft atau yang di-reject
+                                        return;
+                                    }
                                 }
                             };
                         }
@@ -316,16 +346,37 @@ class RealisasiKpiResource extends Resource
                         return 'Data masih bisa diubah';
                     }),
 
-                Tables\Columns\TextColumn::make('approved_at')
-                    ->label('Approved')
-                    ->dateTime()
-                    ->sortable()
-                    ->placeholder('Belum di-approve')
+                Tables\Columns\BadgeColumn::make('approval_status')
+                    ->label('Status Approval')
+                    ->colors([
+                        'success' => 'approved',
+                        'danger' => 'rejected', 
+                        'warning' => 'pending_approval',
+                        'secondary' => 'draft',
+                    ])
+                    ->formatStateUsing(function ($state) {
+                        return match($state) {
+                            'approved' => 'Disetujui',
+                            'rejected' => 'Ditolak',
+                            'pending_approval' => 'Menunggu Persetujuan',
+                            'draft' => 'Draft',
+                            default => 'Unknown'
+                        };
+                    })
                     ->tooltip(function ($record) {
                         if ($record->approved_at) {
-                            return 'Di-approve pada: ' . $record->approved_at->format('d M Y H:i');
+                            return 'Disetujui pada: ' . $record->approved_at->format('d M Y H:i') . 
+                                   ' oleh ' . ($record->approvedBy->name ?? 'Manager');
                         }
-                        return 'Belum di-approve oleh manager';
+                        if ($record->rejected_at) {
+                            return 'Ditolak pada: ' . $record->rejected_at->format('d M Y H:i') . 
+                                   ' oleh ' . ($record->rejectedBy->name ?? 'Manager') .
+                                   (isset($record->rejection_reason) ? "\nAlasan: " . $record->rejection_reason : '');
+                        }
+                        if ($record->is_cutoff) {
+                            return 'Menunggu persetujuan manager';
+                        }
+                        return 'Masih dalam tahap draft';
                     }),
 
                 Tables\Columns\TextColumn::make('keterangan')
@@ -361,6 +412,21 @@ class RealisasiKpiResource extends Resource
                     ->label('Status Final')
                     ->trueLabel('Sudah Final')
                     ->falseLabel('Belum Final'),
+
+                Tables\Filters\Filter::make('pending_approval')
+                    ->label('Menunggu Persetujuan')
+                    ->query(fn (Builder $query) => $query->where('is_cutoff', true)->whereNull('approved_at')->whereNull('rejected_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('approved')
+                    ->label('Disetujui')
+                    ->query(fn (Builder $query) => $query->whereNotNull('approved_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('rejected')
+                    ->label('Ditolak')
+                    ->query(fn (Builder $query) => $query->whereNotNull('rejected_at'))
+                    ->toggle(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -368,11 +434,37 @@ class RealisasiKpiResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => $record->is_editable)
                     ->tooltip(function ($record) {
+                        if ($record->approval_status === 'rejected') {
+                            return 'Edit dan submit ulang realisasi yang ditolak';
+                        }
                         if (!$record->is_editable) {
                             return 'Data sudah final atau sudah di-approve dan tidak dapat diubah';
                         }
                         return 'Edit realisasi';
                     }),
+
+                Tables\Actions\Action::make('resubmit')
+                    ->label('Submit Ulang')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->visible(fn($record) => $record->approval_status === 'rejected')
+                    ->action(function ($record) {
+                        $record->update([
+                            'rejected_by' => null,
+                            'rejected_at' => null,
+                            'rejection_reason' => null,
+                            'is_cutoff' => true, // Set final untuk review ulang
+                        ]);
+                        
+                        Notification::make()
+                            ->success()
+                            ->title('Berhasil Submit Ulang')
+                            ->body('Realisasi telah disubmit ulang untuk persetujuan manager.')
+                            ->send();
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Submit Ulang Realisasi')
+                    ->modalDescription('Apakah Anda yakin ingin submit ulang realisasi ini untuk persetujuan manager?'),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn($record) => $record->is_editable)
