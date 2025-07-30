@@ -32,6 +32,8 @@ class HrPanelProvider extends PanelProvider
             ->path('hr')
             ->login()
             ->registration()
+            ->brandLogo('https://r2.wakafsalman.or.id/logo_baru_ws.jpg')
+            ->brandLogoHeight('50px')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -52,7 +54,7 @@ class HrPanelProvider extends PanelProvider
                 'Master Data',
                 'Strategic Planning',
                 'Manajemen KPI',
-                'Realisasi', 
+                'Realisasi',
                 'Performance',
                 'Settings'
             ])

@@ -20,17 +20,17 @@ use Illuminate\Support\Facades\Auth;
 class OkrManagementResource extends Resource
 {
     protected static ?string $model = KelolaOKR::class;
-    
+
     protected static ?string $navigationIcon = 'heroicon-o-flag';
-    
+
     protected static ?string $navigationLabel = 'Daftar OKR';
-    
+
     protected static ?string $modelLabel = 'OKR';
-    
+
     protected static ?string $pluralModelLabel = 'Daftar OKR';
-    
+
     protected static ?string $navigationGroup = 'Kelola KPI & OKR';
-    
+
     protected static ?int $navigationSort = 2;
 
     /**
@@ -39,13 +39,13 @@ class OkrManagementResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user || !$user->divisi_id) {
             return null;
         }
-        
+
         $count = static::getEloquentQuery()->count();
-        
+
         return $count > 0 ? (string) $count : null;
     }
 
@@ -55,7 +55,7 @@ class OkrManagementResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         $count = (int) static::getNavigationBadge();
-        
+
         if ($count > 15) {
             return 'danger'; // Merah jika banyak
         } elseif ($count > 8) {
@@ -63,7 +63,7 @@ class OkrManagementResource extends Resource
         } elseif ($count > 0) {
             return 'info'; // Biru jika ada
         }
-        
+
         return 'gray'; // Abu-abu jika kosong
     }
 
@@ -71,13 +71,13 @@ class OkrManagementResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         return parent::getEloquentQuery()
             ->where('divisi_id', $user->divisi_id) // OKR untuk divisi manager
             ->where(function ($query) {
                 // Tampilkan OKR bertipe 'okr' (termasuk 'okr divisi', 'okr individu', dll)
                 $query->where('tipe', 'LIKE', '%okr%')
-                      ->orWhere('tipe', 'okr');
+                    ->orWhere('tipe', 'okr');
             })
             ->orderBy('created_at', 'desc');
     }
@@ -145,6 +145,14 @@ class OkrManagementResource extends Resource
                             ->required()
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
+                            ->disabled(fn($record) => $record && !$record->is_editable),
+
+                        Forms\Components\TextInput::make('code_id')
+                            ->label('ID OKR')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->placeholder('Contoh: OKR-2025-001')
+                            ->helperText('ID unik untuk OKR ini, gunakan format yang konsisten')
                             ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
 
@@ -245,7 +253,7 @@ class OkrManagementResource extends Resource
                         Forms\Components\TextInput::make('timeline')
                             ->label('Timeline Target')
                             ->placeholder('Contoh: Akhir Desember 2025'),
-                    ])->columns(2),          
+                    ])->columns(2),
 
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
@@ -270,13 +278,13 @@ class OkrManagementResource extends Resource
                 Tables\Columns\TextColumn::make('tipe')
                     ->label('Tipe')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'okr divisi' => 'primary',
                         'okr individu' => 'info',
                         default => 'gray',
                     })
                     ->sortable(),
-                    // Form Konfigurasi
+                // Form Konfigurasi
                 Tables\Columns\TextColumn::make('activity')
                     ->label('Objective (Tujuan)')
                     ->searchable()
@@ -291,12 +299,12 @@ class OkrManagementResource extends Resource
                 Tables\Columns\TextColumn::make('assignment_type')
                     ->label('Assignment')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'divisi' => 'success',
                         'individual' => 'warning',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'divisi' => 'Divisi',
                         'individual' => 'Individual',
                         default => $state,
@@ -312,11 +320,11 @@ class OkrManagementResource extends Resource
                         }
                         return 'Not assigned';
                     })
-                    ->icon(fn ($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
+                    ->icon(fn($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'draft' => 'gray',
                         'active' => 'success',
                         'completed' => 'info',
@@ -326,13 +334,13 @@ class OkrManagementResource extends Resource
                 Tables\Columns\TextColumn::make('priority')
                     ->label('Priority')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'high' => 'danger',
                         'medium' => 'warning',
                         'low' => 'success',
                         default => 'gray',
                     }),
-        
+
                 Tables\Columns\TextColumn::make('progress')
                     ->label('Progress')
                     ->suffix('%')
@@ -378,8 +386,8 @@ class OkrManagementResource extends Resource
                         if (!isset($data['progress_status'])) {
                             return $query;
                         }
-                        
-                        return match($data['progress_status']) {
+
+                        return match ($data['progress_status']) {
                             'low' => $query->where('progress', '<', 60),
                             'medium' => $query->whereBetween('progress', [60, 79]),
                             'high' => $query->where('progress', '>=', 80),
@@ -396,7 +404,7 @@ class OkrManagementResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Detail'),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => $record->is_editable)
+                    ->visible(fn($record) => $record->is_editable)
                     ->label('Edit'),
                 Tables\Actions\Action::make('duplicate')
                     ->label('Duplikasi')
@@ -406,7 +414,7 @@ class OkrManagementResource extends Resource
                         $newRecord = $record->replicate();
                         $newRecord->activity = $record->activity . ' (Copy)';
                         $newRecord->save();
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->title('OKR berhasil diduplikasi')
                             ->success()
@@ -414,12 +422,12 @@ class OkrManagementResource extends Resource
                     })
                     ->requiresConfirmation(),
                 Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn ($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn ($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn ($record) => $record->is_editable ? 'danger' : 'success')
+                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
+                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
                     ->action(function (KelolaOKR $record) {
                         $record->update(['is_editable' => !$record->is_editable]);
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->title($record->is_editable ? 'OKR dibuka untuk edit' : 'OKR dikunci dari edit')
                             ->success()
@@ -435,8 +443,8 @@ class OkrManagementResource extends Resource
                         ->icon('heroicon-o-lock-closed')
                         ->color('danger')
                         ->action(function ($records) {
-                            $records->each(fn ($record) => $record->update(['is_editable' => false]));
-                            
+                            $records->each(fn($record) => $record->update(['is_editable' => false]));
+
                             \Filament\Notifications\Notification::make()
                                 ->title('OKR terpilih berhasil dikunci')
                                 ->success()
@@ -448,15 +456,15 @@ class OkrManagementResource extends Resource
                         ->icon('heroicon-o-lock-open')
                         ->color('success')
                         ->action(function ($records) {
-                            $records->each(fn ($record) => $record->update(['is_editable' => true]));
-                            
+                            $records->each(fn($record) => $record->update(['is_editable' => true]));
+
                             \Filament\Notifications\Notification::make()
                                 ->title('OKR terpilih berhasil dibuka')
                                 ->success()
                                 ->send();
                         }),
                 ]),
-            ]);    
+            ]);
     }
 
     public static function getRelations(): array
@@ -479,17 +487,17 @@ class OkrManagementResource extends Resource
     {
         return 'Kelola KPI & OKR';
     }
-    
+
     public static function getModelLabel(): string
     {
         return 'OKR';
     }
-    
+
     public static function getPluralModelLabel(): string
     {
         return 'Daftar OKR';
     }
-    
+
     public static function getNavigationLabel(): string
     {
         return 'Daftar OKR';

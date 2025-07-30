@@ -11,12 +11,24 @@
         .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         .data-table th { background-color: #f2f2f2; font-weight: bold; }
         .summary { margin-top: 20px; padding: 10px; background-color: #f9f9f9; }
+        .flex { display: flex; justify-content: space-between; align-items: center; }
+        .flex img { max-height: 50px; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>LAPORAN EVALUASI KINERJA</h2>
-        <h3>{{ strtoupper($laporan->tipe_laporan) === 'DIVISI' ? 'DIVISI' : 'INDIVIDUAL' }}</h3>
+        <div class="flex items-center justify-between">
+            <div style="width: 100px; height: 50px; display: flex; align-items: center;">
+                <img src="https://r2.wakafsalman.or.id/logo_baru_ws.jpg" alt="Logo" style="height: 50px;">
+            </div>
+            <div>
+                <h2>Laporan Evaluasi Kinerja</h2>
+                <p>{{ $laporan->divisi->nama }}</p>
+            </div>
+            <div></div>
+        </div>
     </div>
 
     <table class="info-table">

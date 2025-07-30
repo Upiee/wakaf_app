@@ -13,6 +13,7 @@ class KelolaKPI extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
+        'code_id',
         'activity',
         'parent_id',
         'bobot',
@@ -85,12 +86,6 @@ class KelolaKPI extends Model
                 $model->user_id = null; // Clear user_id if divisi_id is set
             }
         });
-    }
-
-    public function getCodeIdAttribute()
-    {
-        $divisiCode = $this->divisi->kode ?? 'UNK';
-        return $divisiCode . ".KPI-" . str_pad($this->id, 4, '0', STR_PAD_LEFT);
     }
 
     public function indikatorProgress()

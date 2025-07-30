@@ -370,7 +370,7 @@ class LaporanEvaluasi extends Model
             $references[] = [
                 'kpi_id' => $realisasi->kpi_id,
                 'kode' => $realisasi->kpi->activity ?? 'N/A', // Gunakan activity sebagai kode sementara
-                'judul' => $realisasi->kpi->activity ?? 'N/A',
+                'activity' => $realisasi->kpi->activity ?? 'N/A',
                 'nilai' => $realisasi->nilai,
                 'periode' => $realisasi->periode,
                 'skor' => $score

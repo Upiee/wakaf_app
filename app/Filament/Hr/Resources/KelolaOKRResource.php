@@ -97,6 +97,14 @@ class KelolaOKRResource extends Resource
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
                             ->disabled(fn($record) => $record && !$record->is_editable),
+
+                        Forms\Components\TextInput::make('code_id')
+                            ->label('ID OKR')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->placeholder('Contoh: OKR-2025-001')
+                            ->helperText('ID unik untuk OKR ini, gunakan format yang konsisten')
+                            ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
 
 

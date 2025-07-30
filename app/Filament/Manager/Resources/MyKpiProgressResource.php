@@ -9,6 +9,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -29,21 +30,26 @@ class MyKpiProgressResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
-        
+
         if (!$user || !$user->divisi_id) {
             return null;
         }
-        
+
         $count = static::getEloquentQuery()->count();
-        
+
         return $count > 0 ? (string) $count : null;
     }
-    
+
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     // Query untuk KPI divisi yang menjadi tanggung jawab manager
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         return parent::getEloquentQuery()
             ->where('divisi_id', $user->divisi_id) // KPI untuk divisi manager
             ->where('tipe', 'LIKE', 'kpi%')
@@ -130,102 +136,136 @@ class MyKpiProgressResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(null)
             ->columns([
-                Tables\Columns\TextColumn::make('periode')
-                    ->label('Quartal')
-                    ->badge()
-                    ->color('primary')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('activity')
-                    ->label('KPI Activity')
+                Tables\Columns\TextColumn::make('code_id')
+                    ->label('ID KPI')
                     ->searchable()
                     ->sortable()
-                    ->limit(40),
-
-                Tables\Columns\TextColumn::make('output')
-                    ->label('Target')
-                    ->limit(25),
-
-                Tables\Columns\TextColumn::make('bobot')
-                    ->label('Bobot')
-                    ->suffix('%')
+                    ->copyable(),
+                Tables\Columns\TextColumn::make('tipe')
+                    ->label('Tipe')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'kpi divisi' => 'warning',
+                        'kpi individu' => 'success',
+                        default => 'gray',
+                    })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('activity')
+                    ->label('Aktivitas KPI')
+                    ->searchable()
+                    ->limit(40)
+                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) <= 40) {
+                            return null;
+                        }
+                        return $state;
+                    }),
+                Tables\Columns\TextColumn::make('assignment_type')
+                    ->label('Assignment')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'divisi' => 'success',
+                        'individual' => 'warning',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'divisi' => 'Divisi',
+                        'individual' => 'Individual',
+                        default => $state,
+                    }),
+                Tables\Columns\TextColumn::make('target_info')
+                    ->label('Target')
+                    ->getStateUsing(function ($record) {
+                        if ($record->assignment_type === 'divisi' && $record->divisi) {
+                            $count = $record->divisi->users()->count();
+                            return $record->divisi->nama . " ({$count} members)";
+                        } elseif ($record->assignment_type === 'individual' && $record->user) {
+                            return $record->user->name;
+                        }
+                        return 'Not assigned';
+                    })
+                    ->icon(fn($record) => $record->assignment_type === 'divisi' ? 'heroicon-o-building-office' : 'heroicon-o-user'),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'active' => 'success',
+                        'completed' => 'info',
+                        'archived' => 'warning',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('priority')
+                    ->label('Priority')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'high' => 'danger',
+                        'medium' => 'warning',
+                        'low' => 'success',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\TextColumn::make('progress')
                     ->label('Progress')
                     ->suffix('%')
+                    ->getStateUsing(fn($record) => $record->achievement ?? 0)
                     ->sortable()
+                    ->color(fn($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
+                    ->alignCenter(),
+                Tables\Columns\TextColumn::make('periode')
+                    ->label('Periode')
                     ->badge()
-                    ->color(function ($state) {
-                        if ($state >= 100) return 'success';
-                        if ($state >= 75) return 'warning';
-                        if ($state >= 50) return 'info';
-                        return 'danger';
-                    }),
-
-                Tables\Columns\TextColumn::make('realisasi')
-                    ->label('Achievement')
-                    ->suffix('%')
-                    ->sortable()
-                    ->badge()
-                    ->color(function ($state) {
-                        if ($state >= 100) return 'success';
-                        if ($state >= 75) return 'warning';
-                        if ($state >= 50) return 'info';
-                        return 'danger';
-                    }),
-
-                Tables\Columns\TextColumn::make('timeline')
-                    ->label('Timeline')
-                    ->limit(20),
-
-                Tables\Columns\TextColumn::make('status')
+                    ->color('info'),
+                Tables\Columns\IconColumn::make('is_editable')
                     ->label('Status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'active' => 'success', 
-                        'completed' => 'primary',
-                        'overdue' => 'danger',
-                        default => 'gray',
-                    }),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Last Updated')
-                    ->dateTime()
+                    ->boolean()
+                    ->trueIcon('heroicon-o-pencil')
+                    ->falseIcon('heroicon-o-lock-closed')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Dibuat')
+                    ->date()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('periode')
-                    ->label('Filter Quartal')
+                SelectFilter::make('tipe')
                     ->options([
-                        '2025-Q1' => 'Q1 2025',
-                        '2025-Q2' => 'Q2 2025',
-                        '2025-Q3' => 'Q3 2025',
-                        '2025-04' => 'Q4 2025',
-                        '2025-H1' => 'H1 2025',
-                        '2025-H2' => 'H2 2025',
-                        'Tahunan-2025' => 'Tahunan 2025',
-                    ]),
-                  
+                        'kpi divisi' => 'KPI Divisi',
+                        'kpi individu' => 'KPI Individu',
+                    ])
+                    ->label('Tipe KPI'),
+                Tables\Filters\Filter::make('progress_range')
+                    ->form([
+                        Forms\Components\Select::make('progress_status')
+                            ->label('Status Progress')
+                            ->options([
+                                'low' => 'Di Bawah 60% (Perlu Perhatian)',
+                                'medium' => '60-79% (On Track)',
+                                'high' => '80%+ (Excellent)',
+                            ])
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (!isset($data['progress_status'])) {
+                            return $query;
+                        }
 
-                Tables\Filters\SelectFilter::make('status')
-                    ->label('Filter Status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'active' => 'Active',
-                        'completed' => 'Completed',
-                        'overdue' => 'Overdue',
-                    ]),
-            ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                //
+                        return match ($data['progress_status']) {
+                            'low' => $query->where('progress', '<', 60),
+                            'medium' => $query->whereBetween('progress', [60, 79]),
+                            'high' => $query->where('progress', '>=', 80),
+                            default => $query,
+                        };
+                    }),
+                Tables\Filters\TernaryFilter::make('is_editable')
+                    ->label('Status Edit')
+                    ->boolean()
+                    ->trueLabel('Dapat Diedit')
+                    ->falseLabel('Terkunci'),
             ]);
     }
 

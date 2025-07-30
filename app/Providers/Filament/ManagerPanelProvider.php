@@ -6,7 +6,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -27,6 +26,8 @@ class ManagerPanelProvider extends PanelProvider
             ->path('manager')
             ->login()
             ->registration()
+            ->brandLogo('https://r2.wakafsalman.or.id/logo_baru_ws.jpg')
+            ->brandLogoHeight('50px')
             ->colors([
                 'primary' => Color::Red,
             ])
@@ -39,8 +40,6 @@ class ManagerPanelProvider extends PanelProvider
                 \App\Filament\Manager\Resources\ManajemenTimResource::class,
                 \App\Filament\Manager\Resources\EmployeeKpiApprovalResource::class,
                 \App\Filament\Manager\Resources\EmployeeOkrApprovalResource::class,
-                \App\Filament\Manager\Resources\RealisasiKpiResource::class,
-                \App\Filament\Manager\Resources\RealisasiOkrResource::class,
             ])
             ->discoverResources(in: app_path('Filament/Manager/Resources'), for: 'App\\Filament\\Manager\\Resources')
             ->discoverPages(in: app_path('Filament/Manager/Pages'), for: 'App\\Filament\\Manager\\Pages')

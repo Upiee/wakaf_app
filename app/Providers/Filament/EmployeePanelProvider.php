@@ -29,6 +29,8 @@ class EmployeePanelProvider extends PanelProvider
             ->path('employee')
             ->login()
             ->registration()
+            ->brandLogo('https://r2.wakafsalman.or.id/logo_baru_ws.jpg')
+            ->brandLogoHeight('50px')
             ->colors([
                 'primary' => Color::Cyan,
             ])
@@ -62,7 +64,7 @@ class EmployeePanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-                onlyEmployeeOrAdmin::class, 
+                onlyEmployeeOrAdmin::class,
             ]);
     }
 }

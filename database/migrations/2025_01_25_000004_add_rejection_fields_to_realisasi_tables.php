@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('realisasi_kpis', function (Blueprint $table) {
-            $table->foreignId('rejected_by')->nullable()->constrained('users')->onDelete('set null')->after('approved_at');
+            $table->foreignId('rejected_by')->nullable()->constrained('users')->after('approved_at');
             $table->timestamp('rejected_at')->nullable()->after('rejected_by');
             $table->text('rejection_reason')->nullable()->after('rejected_at');
         });

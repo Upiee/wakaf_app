@@ -146,6 +146,14 @@ class KpiManagementResource extends Resource
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
                             ->disabled(fn($record) => $record && !$record->is_editable),
+
+                        Forms\Components\TextInput::make('code_id')
+                            ->label('ID KPI')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->placeholder('Contoh: KPI-2025-001')
+                            ->helperText('ID unik untuk KPI ini, gunakan format yang konsisten')
+                            ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Detail Progress KPI')

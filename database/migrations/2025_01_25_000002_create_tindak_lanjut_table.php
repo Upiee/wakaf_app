@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('tindak_lanjut', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_tindak_lanjut')->unique(); // TL-202501-001
-            $table->foreignId('laporan_evaluasi_id')->constrained('laporan_evaluasi')->onDelete('cascade'); // Referensi ke laporan
+            $table->string('kode_tindak_lanjut'); // TL-202501-001
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Karyawan yang mendapat tindak lanjut
             $table->enum('jenis_tindakan', [
                 'pelatihan', 
