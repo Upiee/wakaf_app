@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('laporan_evaluasi', function (Blueprint $table) {
             // Add columns yang belum ada
             if (!Schema::hasColumn('laporan_evaluasi', 'kode_laporan')) {
-                $table->string('kode_laporan')->unique()->after('id');
+                $table->string('kode_laporan')->after('id');
             }
             if (!Schema::hasColumn('laporan_evaluasi', 'user_id')) {
                 $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade')->after('kode_laporan');
