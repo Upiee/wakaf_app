@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('laporan_evaluasi', function (Blueprint $table) {
+        Schema::create('laporan_evaluasi', function (Blueprint $table) {
             $table->id();
             $table->string('kode_laporan');
             $table->foreignIdFor(User::class)->nullable()->constrained()->nullOnDelete();
@@ -40,29 +40,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('laporan_evaluasi', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropForeign(['divisi_id']);
-            $table->dropForeign(['dibuat_oleh']);
-            $table->dropColumn([
-                'id',
-                'kode_laporan',
-                'user_id',
-                'divisi_id',
-                'periode_mulai',
-                'periode_selesai',
-                'tipe_laporan',
-                'data_laporan',
-                'kpi_references',
-                'okr_references',
-                'total_kpi',
-                'total_okr',
-                'pencapaian_kpi',
-                'pencapaian_okr',
-                'rata_rata_score',
-                'catatan_evaluasi',
-                'dibuat_oleh'
-            ]);
-        });
+        Schema::dropIfExists('laporan_evaluasi');
     }
 };
