@@ -96,6 +96,13 @@ class OkrManagementResource extends Resource
                             ->searchable()
                             ->preload()
                             ->placeholder('Pilih OKR Induk (jika ada)')
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                // Jika memilih parent, set tipe ke 'sub-okr'
+                                $okr = KelolaOKR::find($state);
+                                $set('activity', $okr ? $okr->activity : '');
+                                $set('periode', $okr ? $okr->periode : '');
+                            })
+                            ->live()
                             ->helperText('Pilih OKR induk jika ini adalah sub-OKR'),
                     ]),
 
@@ -259,6 +266,7 @@ class OkrManagementResource extends Resource
                             ->maxValue(100)
                             ->suffix('%')
                             ->default(0)
+                            ->hidden()
                             ->helperText('Progress akan dihitung otomatis dari sub-activities'),
                         Forms\Components\Select::make('periode')
                             ->label('Periode')
@@ -274,6 +282,7 @@ class OkrManagementResource extends Resource
                             ->searchable(),
                         Forms\Components\TextInput::make('timeline')
                             ->label('Timeline Target')
+                            ->hidden()
                             ->placeholder('Contoh: Akhir Desember 2025'),
                     ])->columns(2),
 

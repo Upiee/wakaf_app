@@ -94,8 +94,14 @@ class KpiManagementResource extends Resource
                             ->options(KelolaKPI::options(Auth::user()->divisi_id))
                             ->searchable()
                             ->preload()
+                            ->helperText('Pilih KPI induk jika ini adalah sub-KPI')
                             ->placeholder('Pilih KPI Induk (jika ada)')
-                            ->helperText('Pilih KPI induk jika ini adalah sub-KPI'),
+                            ->live()
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                $kpi = KelolaKPI::find($state);
+                                $set('activity', $kpi ? $kpi->activity : '');
+                                $set('periode', $kpi ? $kpi->periode : '');
+                            }),
                     ]),
 
                 Forms\Components\Section::make('Informasi Dasar KPI')
@@ -106,7 +112,7 @@ class KpiManagementResource extends Resource
                                 'divisi' => 'Target ke Divisi',
                                 'individual' => 'Target ke Karyawan',
                             ])
-                            ->default('divisi')
+                            ->default('individual')
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, $state) {
                                 if ($state === 'divisi') {
@@ -166,6 +172,7 @@ class KpiManagementResource extends Resource
                             ->required()
                             ->label('Aktivitas/Deskripsi KPI')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
+                            ->live()
                             ->disabled(fn($record) => $record && !$record->is_editable),
 
                         Forms\Components\TextInput::make('code_id')
@@ -244,6 +251,7 @@ class KpiManagementResource extends Resource
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('%')
+                            ->hidden()
                             ->default(0),
                         Forms\Components\Select::make('periode')
                             ->label('Periode')
@@ -257,9 +265,9 @@ class KpiManagementResource extends Resource
                                 '2025' => 'Tahunan 2025',
                             ])
                             ->searchable(),
-                        Forms\Components\TextInput::make('timeline')
-                            ->label('Timeline Target')
-                            ->placeholder('Contoh: Akhir Juni 2025'),
+                        // Forms\Components\TextInput::make('timeline')
+                        //     ->label('Timeline Target')
+                        //     ->placeholder('Contoh: Akhir Juni 2025'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Pengaturan')
