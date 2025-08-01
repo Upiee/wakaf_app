@@ -24,17 +24,17 @@ class KelolaOKRResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Pilih Parent / KPI Divisi')
-                    ->description('Jika ini adalah KPI utama, biarkan kosong. Jika ini adalah sub-KPI, pilih KPI induk.')
+                Forms\Components\Section::make('Pilih Parent / OKR Divisi')
+                    ->description('Jika ini adalah OKR utama, biarkan kosong. Jika ini adalah sub-OKR, pilih OKR induk.')
                     ->schema([
                         Forms\Components\Select::make('parent_id')
-                            ->label('KPI Induk')
+                            ->label('OKR Induk')
                             // ->relationship('parent', 'activity')
                             ->options(KelolaOKR::options())
                             ->searchable()
                             ->preload()
-                            ->placeholder('Pilih KPI Induk (jika ada)')
-                            ->helperText('Pilih KPI induk jika ini adalah sub-KPI'),
+                            ->placeholder('Pilih OKR Induk (jika ada)')
+                            ->helperText('Pilih OKR induk jika ini adalah sub-OKR'),
                     ]),
 
                 Forms\Components\Section::make('Informasi Dasar OKR')

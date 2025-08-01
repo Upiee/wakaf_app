@@ -86,6 +86,18 @@ class KpiManagementResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Section::make('Pilih Parent / KPI Divisi')
+                    ->description('Jika ini adalah KPI utama, biarkan kosong. Jika ini adalah sub-KPI, pilih KPI induk.')
+                    ->schema([
+                        Forms\Components\Select::make('parent_id')
+                            ->label('KPI Induk')
+                            ->options(KelolaKPI::options(Auth::user()->divisi_id))
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Pilih KPI Induk (jika ada)')
+                            ->helperText('Pilih KPI induk jika ini adalah sub-KPI'),
+                    ]),
+
                 Forms\Components\Section::make('Informasi Dasar KPI')
                     ->schema([
                         Forms\Components\Select::make('assignment_type')
@@ -125,11 +137,20 @@ class KpiManagementResource extends Resource
 
                         Forms\Components\Select::make('user_id')
                             ->label('Pilih Karyawan')
-                            ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn($record) => '#' . $record->id . ' ' . $record->name . ' (' . ($record->divisi->nama ?? 'No Division') . ')')
                             ->searchable(['name', 'email'])
                             ->preload()
                             ->visible(fn(callable $get) => $get('assignment_type') === 'individual')
+                            ->options(function () {
+                                $options = [];
+                                $user = User::where('divisi_id', Auth::user()->divisi_id)
+                                    ->where('is_active', true)
+                                    ->get();
+
+                                foreach ($user as $u) {
+                                    $options[$u->id] = '#' . $u->id . ' ' . $u->name . ' (' . ($u->divisi->nama ?? 'No Division') . ')';
+                                }
+                                return $options;
+                            })
                             ->helperText('Pilih karyawan spesifik untuk assignment'),
 
                         Forms\Components\Select::make('priority')

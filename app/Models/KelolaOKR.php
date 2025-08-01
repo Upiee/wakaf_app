@@ -41,9 +41,12 @@ class KelolaOKR extends Model
         'tipe' => 'okr',
     ];
 
-    public static function options()
+    public static function options($divisi_id = null)
     {
         return self::whereNull('parent_id')
+            ->when($divisi_id, function ($query) use ($divisi_id) {
+                return $query->where('divisi_id', $divisi_id);
+            })
             ->get()
             ->mapWithKeys(function ($item) {
                 return [$item->id => "{$item->divisi->kode} - {$item->activity}"];
@@ -130,20 +133,20 @@ class KelolaOKR extends Model
     public function scopeAssignedToDivisi($query, $divisiId)
     {
         return $query->where('assignment_type', 'divisi')
-                    ->where('divisi_id', $divisiId);
+            ->where('divisi_id', $divisiId);
     }
 
     public function scopeAssignedToUser($query, $userId)
     {
-        return $query->where(function($q) use ($userId) {
+        return $query->where(function ($q) use ($userId) {
             $q->where('assignment_type', 'individual')
-              ->where('user_id', $userId)
-              ->orWhere(function($subQ) use ($userId) {
-                  $subQ->where('assignment_type', 'divisi')
-                       ->whereHas('divisi.users', function($userQ) use ($userId) {
-                           $userQ->where('users.id', $userId);
-                       });
-              });
+                ->where('user_id', $userId)
+                ->orWhere(function ($subQ) use ($userId) {
+                    $subQ->where('assignment_type', 'divisi')
+                        ->whereHas('divisi.users', function ($userQ) use ($userId) {
+                            $userQ->where('users.id', $userId);
+                        });
+                });
         });
     }
 
@@ -151,7 +154,7 @@ class KelolaOKR extends Model
     public function calculateTotalProgress(): float
     {
         $subActivities = $this->subActivities()->where('is_active', true)->get();
-        
+
         if ($subActivities->isEmpty()) {
             return 0;
         }
@@ -166,10 +169,10 @@ class KelolaOKR extends Model
         }
 
         $averageProgress = $totalWeight > 0 ? $totalWeightedProgress / $totalWeight : 0;
-        
+
         // Update main OKR progress
         $this->update(['progress' => $averageProgress]);
-        
+
         return $averageProgress;
     }
 
@@ -177,7 +180,7 @@ class KelolaOKR extends Model
     public function getCompletionStatusAttribute(): string
     {
         $subActivities = $this->subActivities()->where('is_active', true)->get();
-        
+
         if ($subActivities->isEmpty()) {
             return 'no_sub_activities';
         }
@@ -196,14 +199,14 @@ class KelolaOKR extends Model
 
     public function getAchievementAttribute(): float
     {
-        $subActivities = $this->subActivities()->where('is_active', true)->get();   
+        $subActivities = $this->subActivities()->where('is_active', true)->get();
 
         if ($subActivities->isEmpty()) {
             return 0;
         }
 
         $totalAchievement = 0;
-        
+
         foreach ($subActivities as $subActivity) {
             $achievement = $subActivity->realisasi_kpi_total ?? 0; // Default to 0 if no achievement
             $totalAchievement += $achievement;
@@ -228,5 +231,3 @@ class KelolaOKR extends Model
         return $this->hasMany(KelolaOKR::class, 'parent_id', 'id');
     }
 }
-
-

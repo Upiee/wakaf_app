@@ -40,9 +40,12 @@ class KelolaKPI extends Model
         'tipe' => 'kpi',
     ];
 
-    public static function options()
+    public static function options($divisi_id = null)
     {
         return self::whereNull('parent_id')
+            ->when($divisi_id, function ($query) use ($divisi_id) {
+                return $query->where('divisi_id', $divisi_id);
+            })
             ->get()
             ->mapWithKeys(function ($item) {
                 return [$item->id => "{$item->divisi->kode} - {$item->activity}"];
