@@ -280,7 +280,7 @@ class RealisasiOkrResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('okr.output')
+                Tables\Columns\TextColumn::make('indikator.indikator')
                     ->label('Target')
                     ->limit(50)
                     ->sortable(),
