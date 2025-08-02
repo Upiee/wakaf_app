@@ -38,8 +38,6 @@ class LaporanEvaluasi extends Model
         'pencapaian_okr' => 0.00,
         'rata_rata_score' => 0.00,
         'data_laporan' => '{}',
-        'kpi_references' => '[]',
-        'okr_references' => '[]',
     ];
 
     protected $casts = [
@@ -51,6 +49,11 @@ class LaporanEvaluasi extends Model
         'pencapaian_kpi' => 'float',
         'pencapaian_okr' => 'float',
         'rata_rata_score' => 'float',
+    ];
+
+    protected $appends = [
+        'kpi_reference_array',
+        'okr_reference_array',
     ];
 
     protected static function boot()
@@ -189,6 +192,26 @@ class LaporanEvaluasi extends Model
             'total_kpi' => count($kpiRefs),
             'total_okr' => count($okrRefs),
         ]);
+    }
+
+    public function getKpiReferenceArrayAttribute()
+    {   
+        $value = $this->getAttribute('kpi_references');
+        // if string then decode
+        if (is_string($value)) {
+            return json_decode($value, true);
+        }
+        return $value;
+    }
+
+    public function getOkrReferenceArrayAttribute()
+    {
+        $value = $this->getAttribute('okr_references');
+        // if string then decode
+        if (is_string($value)) {
+            return json_decode($value, true);
+        }
+        return $value;
     }
 
     // Relationships

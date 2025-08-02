@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\Test\Constraint\ResponseFormatSame;
 
 Route::get('/', function () {
     return view('welcome');
@@ -12,8 +13,8 @@ Route::get('/laporan/export/{id}', function ($id) {
     
     $html = view('exports.laporan-evaluasi', [
         'laporan' => $laporan,
-        'kpiData' => $laporan->kpi_references ?? [],
-        'okrData' => $laporan->okr_references ?? [],
+        'kpiData' => $laporan->kpi_reference_array ?? [],
+        'okrData' => $laporan->okr_reference_array ?? [],
     ])->render();
     
     $filename = "Laporan_Evaluasi_" . str_replace(['/', '\\', ' '], '_', $laporan->getAttribute('kode_laporan')) . "_" . date('Ymd_His') . ".xls";

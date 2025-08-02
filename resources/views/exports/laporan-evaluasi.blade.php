@@ -20,9 +20,9 @@
 <body>
     <div class="header">
         <div class="flex items-center justify-between">
-            <div style="width: 100px; height: 50px; display: flex; align-items: center;">
+            {{-- <div style="width: 100px; height: 50px; display: flex; align-items: center;">
                 <img src="https://r2.wakafsalman.or.id/logo_baru_ws.jpg" alt="Logo" style="height: 50px;">
-            </div>
+            </div> --}}
             <div>
                 <h2>Laporan Evaluasi Kinerja</h2>
                 <p>{{ $laporan->divisi->nama }}</p>
