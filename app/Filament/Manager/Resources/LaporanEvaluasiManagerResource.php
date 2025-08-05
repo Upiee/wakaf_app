@@ -21,6 +21,19 @@ class LaporanEvaluasiManagerResource extends Resource
     protected static ?string $navigationGroup = 'Report';
     protected static ?int $navigationSort = 50;
 
+    public static function getNavigationBadge(): ?string
+    {
+        $user = Auth::user();
+        
+        if (!$user || !$user->divisi_id) {
+            return null;
+        }
+        
+        $count = static::getEloquentQuery()->count();
+        
+        return $count > 0 ? (string) $count : null;
+    }
+
     // Filter hanya untuk divisi manager
     public static function getEloquentQuery(): Builder
     {

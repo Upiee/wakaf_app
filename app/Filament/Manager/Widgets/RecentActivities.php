@@ -22,22 +22,30 @@ class RecentActivities extends BaseWidget
     {
         $user = Auth::user();
         $divisiId = $user->divisi_id;
+        $currentQuarter = '2025-Q2'; // Fixed format for periode
 
         return $table
             ->query(
                 RealisasiKpi::query()
-                    ->where('divisi_id', $divisiId)
+                    ->whereHas('user', function ($query) use ($divisiId) {
+                        $query->where('divisi_id', $divisiId);
+                    })
+                    ->where('periode', $currentQuarter)
                     ->with(['kpi', 'user'])
-                    ->orderBy('created_at', 'desc')
+                    ->orderBy('updated_at', 'desc')
                     ->limit(10)
             )
             ->columns([
+                Tables\Columns\TextColumn::make('kpi.code_id')
+                    ->label('ID KPI')
+                    ->searchable()
+                    ->weight('bold'),
+                    
                 Tables\Columns\TextColumn::make('type')
                     ->label('Tipe')
                     ->badge()
                     ->color('primary')
-                    ->formatStateUsing(fn ($record) => 'KPI')
-                    ->sortable(),
+                    ->formatStateUsing(fn ($record) => 'KPI'),
                     
                 Tables\Columns\TextColumn::make('kpi.activity')
                     ->label('Aktivitas')

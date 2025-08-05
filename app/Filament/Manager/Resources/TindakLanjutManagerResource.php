@@ -22,6 +22,19 @@ class TindakLanjutManagerResource extends Resource
     protected static ?string $navigationGroup = 'Report';
     protected static ?int $navigationSort = 51;
 
+    public static function getNavigationBadge(): ?string
+    {
+        $user = Auth::user();
+        
+        if (!$user || !$user->divisi_id) {
+            return null;
+        }
+        
+        $count = static::getEloquentQuery()->count();
+        
+        return $count > 0 ? (string) $count : null;
+    }
+
     // Simple filter - hanya untuk tim manager
     public static function getEloquentQuery(): Builder
     {

@@ -50,7 +50,7 @@ class EmployeeOkrApprovalResource extends Resource
             ->where('user_id', '!=', $user->id) // Bukan realisasi manager sendiri
             ->whereNotNull('user_id') // Yang sudah di-assign ke employee
             ->with(['okr', 'user']) // Load relasi
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'asc');
     }
 
     public static function form(Form $form): Form
@@ -143,7 +143,14 @@ class EmployeeOkrApprovalResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('okr.code_id', 'asc')
             ->columns([
+                Tables\Columns\TextColumn::make('okr.code_id')
+                    ->label('ID OKR')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->weight('bold'),
                 Tables\Columns\TextColumn::make('okr.activity')
                     ->label('OKR Activity')
                     ->searchable()
@@ -171,14 +178,6 @@ class EmployeeOkrApprovalResource extends Resource
                     ->sortable()
                     ->badge()
                     ->color('primary'),
-
-                Tables\Columns\IconColumn::make('is_cutoff')
-                    ->label('Final')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-lock-closed')
-                    ->falseIcon('heroicon-o-lock-open')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
 
                 Tables\Columns\BadgeColumn::make('approved_at')
                     ->label('Approval Status')
@@ -220,7 +219,19 @@ class EmployeeOkrApprovalResource extends Resource
 
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Employee')
-                    ->relationship('user', 'name'),
+                    ->options(function () {
+                        $user = Auth::user();
+                        if (!$user || !$user->divisi_id) {
+                            return [];
+                        }
+                        
+                        return \App\Models\User::where('divisi_id', $user->divisi_id)
+                            ->where('id', '!=', $user->id) // Exclude manager sendiri
+                            ->where('is_active', true)
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable(),
 
                 Tables\Filters\SelectFilter::make('periode')
                     ->label('Period')
@@ -230,11 +241,6 @@ class EmployeeOkrApprovalResource extends Resource
                         'Q3-2025' => 'Q3 2025',
                         'Q4-2025' => 'Q4 2025',
                     ]),
-
-                Tables\Filters\TernaryFilter::make('is_cutoff')
-                    ->label('Final Status')
-                    ->trueLabel('Final')
-                    ->falseLabel('Draft'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

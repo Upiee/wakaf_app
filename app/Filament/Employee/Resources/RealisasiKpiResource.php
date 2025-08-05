@@ -122,7 +122,7 @@ class RealisasiKpiResource extends Resource
                     ->afterStateUpdated(function ($state, $set) {
                         // Cek apakah sudah ada realisasi untuk KPI ini di periode yang sama
                         $user = Auth::user();
-                        $periode = request()->input('periode', 'Q3-2025');
+                        $periode = request()->input('periode', 'Q2-2025');
 
                         // if ($state) {
                         //     $exists = RealisasiKpi::where('kpi_id', $state)
@@ -160,7 +160,7 @@ class RealisasiKpiResource extends Resource
                     ->afterStateUpdated(function ($state, $set, $get) {
                         // Cek apakah sudah ada realisasi untuk sub-activity ini di periode yang sama
                         $user = Auth::user();
-                        $periode = request()->input('periode', 'Q3-2025');
+                        $periode = request()->input('periode', 'Q2-2025');
                         $kpiId = $get('kpi_id');
 
                         // if ($state && $kpiId) {
@@ -240,7 +240,7 @@ class RealisasiKpiResource extends Resource
                         'H2-2025' => 'H2 2025 (Jul-Des)',
                         'Tahunan-2025' => 'Tahunan 2025',
                     ])
-                    ->default('Q3-2025')
+                    ->default('Q2-2025')
                     ->required()
                     ->live()
                     ->afterStateUpdated(function ($state, $set, $get) {
@@ -499,7 +499,7 @@ class RealisasiKpiResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'asc');
     }
 
     public static function getRelations(): array

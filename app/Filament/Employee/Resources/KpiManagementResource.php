@@ -18,7 +18,7 @@ class KpiManagementResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static ?string $navigationGroup = 'Manajemen KPI';
-    protected static ?string $navigationLabel = 'KPI Management';
+    protected static ?string $navigationLabel = 'Daftar KPI';
     protected static ?int $navigationSort = 1;
 
     /**
@@ -62,7 +62,7 @@ class KpiManagementResource extends Resource
         return parent::getEloquentQuery()
             ->where('user_id', $user->id) // Hanya KPI yang assigned ke employee
             ->where('tipe', 'LIKE', 'kpi%') // Support semua tipe KPI
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'asc');
     }
 
     public static function form(Form $form): Form
@@ -302,53 +302,37 @@ class KpiManagementResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Detail'),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->is_editable)
-                    ->label('Edit'),
-                Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
-                    ->action(function (KelolaKPI $record) {
-                        $record->update(['is_editable' => !$record->is_editable]);
-
-                        \Filament\Notifications\Notification::make()
-                            ->title($record->is_editable ? 'KPI dibuka untuk edit' : 'KPI dikunci dari edit')
-                            ->success()
-                            ->send();
-                    }),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('bulk_lock')
-                        ->label('Kunci Terpilih')
-                        ->icon('heroicon-o-lock-closed')
-                        ->color('danger')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => false]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('KPI terpilih berhasil dikunci')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-                    Tables\Actions\BulkAction::make('bulk_unlock')
-                        ->label('Buka Kunci Terpilih')
-                        ->icon('heroicon-o-lock-open')
-                        ->color('success')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => true]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('KPI terpilih berhasil dibuka')
-                                ->success()
-                                ->send();
-                        }),
-                ]),
             ]);
+            // ->bulkActions([
+            //     Tables\Actions\BulkActionGroup::make([
+            //         Tables\Actions\DeleteBulkAction::make(),
+            //         Tables\Actions\BulkAction::make('bulk_lock')
+            //             ->label('Kunci Terpilih')
+            //             ->icon('heroicon-o-lock-closed')
+            //             ->color('danger')
+            //             ->action(function ($records) {
+            //                 $records->each(fn($record) => $record->update(['is_editable' => false]));
+
+            //                 \Filament\Notifications\Notification::make()
+            //                     ->title('KPI terpilih berhasil dikunci')
+            //                     ->success()
+            //                     ->send();
+            //             })
+            //             ->requiresConfirmation(),
+            //         Tables\Actions\BulkAction::make('bulk_unlock')
+            //             ->label('Buka Kunci Terpilih')
+            //             ->icon('heroicon-o-lock-open')
+            //             ->color('success')
+            //             ->action(function ($records) {
+            //                 $records->each(fn($record) => $record->update(['is_editable' => true]));
+
+            //                 \Filament\Notifications\Notification::make()
+            //                     ->title('KPI terpilih berhasil dibuka')
+            //                     ->success()
+            //                     ->send();
+            //             }),
+            //     ]),
+            // ]);
     }
 
     public static function getRelations(): array
@@ -364,7 +348,7 @@ class KpiManagementResource extends Resource
             'index' => Pages\ListKpiManagement::route('/'),
             'create' => Pages\CreateKpiManagement::route('/create'),
             'edit' => Pages\EditKpiManagement::route('/{record}/edit'),
-            // 'view' => Pages\ViewKpiManagement::route('/{record}'),
+            'view' => Pages\ViewKpiManagement::route('/{record}'),
         ];
     }
 

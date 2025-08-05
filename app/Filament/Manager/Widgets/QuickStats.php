@@ -18,7 +18,7 @@ class QuickStats extends BaseWidget
     protected function getStats(): array
     {
         $userDivisi = Auth::user()->divisi_id;
-        $currentMonth = now()->format('Y-m');
+        $currentQuarter = 'Q2-2025'; // Using Q2-2025 where we have data
         
         // Team members count
         $teamCount = User::where('divisi_id', $userDivisi)
@@ -45,52 +45,56 @@ class QuickStats extends BaseWidget
             })
             ->count();
 
-        // Pending approvals
-        $pendingApprovals = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
+        // Pending items (using current quarter)
+        $pendingKpis = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
                 $query->where('divisi_id', $userDivisi);
             })
-            ->where('is_cutoff', true)
-            ->whereNull('approved_at')
+            ->where('periode', $currentQuarter)
+            ->where('nilai', 0) // Assuming 0 means pending
+            ->count();
+            
+        $pendingOkrs = RealisasiOkr::whereHas('user', function ($query) use ($userDivisi) {
+                $query->where('divisi_id', $userDivisi);
+            })
+            ->where('periode', $currentQuarter)
+            ->where('nilai', 0) // Assuming 0 means pending
+            ->count();
+            
+        $pendingApprovals = $pendingKpis + $pendingOkrs;
+
+        // Completion rate this quarter
+        $completedThisQuarter = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
+                $query->where('divisi_id', $userDivisi);
+            })
+            ->where('periode', $currentQuarter)
+            ->where('nilai', '>', 0)
             ->count() + 
             RealisasiOkr::whereHas('user', function ($query) use ($userDivisi) {
                 $query->where('divisi_id', $userDivisi);
             })
-            ->where('is_cutoff', true)
-            ->whereNull('approved_at')
+            ->where('periode', $currentQuarter)
+            ->where('nilai', '>', 0)
             ->count();
 
-        // Completion rate this month
-        $completedThisMonth = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
+        $totalThisQuarter = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
                 $query->where('divisi_id', $userDivisi);
             })
-            ->where('periode', 'like', "%{$currentMonth}%")
-            ->whereNotNull('approved_at')
+            ->where('periode', $currentQuarter)
             ->count() + 
             RealisasiOkr::whereHas('user', function ($query) use ($userDivisi) {
                 $query->where('divisi_id', $userDivisi);
             })
-            ->where('periode', 'like', "%{$currentMonth}%")
-            ->whereNotNull('approved_at')
+            ->where('periode', $currentQuarter)
             ->count();
 
-        $totalThisMonth = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
-                $query->where('divisi_id', $userDivisi);
-            })
-            ->where('periode', 'like', "%{$currentMonth}%")
-            ->count() + 
-            RealisasiOkr::whereHas('user', function ($query) use ($userDivisi) {
-                $query->where('divisi_id', $userDivisi);
-            })
-            ->where('periode', 'like', "%{$currentMonth}%")
-            ->count();
-
-        $completionRate = $totalThisMonth > 0 ? round(($completedThisMonth / $totalThisMonth) * 100, 1) : 0;
+        $completionRate = $totalThisQuarter > 0 ? round(($completedThisQuarter / $totalThisQuarter) * 100, 1) : 0;
 
         // Average performance
         $avgPerformance = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
                 $query->where('divisi_id', $userDivisi);
             })
-            ->whereNotNull('approved_at')
+            ->where('periode', $currentQuarter)
+            ->where('nilai', '>', 0)
             ->avg('nilai') ?? 0;
 
         return [

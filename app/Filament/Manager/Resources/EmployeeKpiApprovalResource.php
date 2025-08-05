@@ -24,9 +24,7 @@ class EmployeeKpiApprovalResource extends Resource
     protected static ?string $navigationLabel = 'KPI Approval';
     protected static ?int $navigationSort = 12;
 
-    /**
-     * Get navigation badge untuk menampilkan jumlah KPI
-     */
+    
     public static function getNavigationBadge(): ?string
     {
         $user = Auth::user();
@@ -50,7 +48,7 @@ class EmployeeKpiApprovalResource extends Resource
             ->where('user_id', '!=', $user->id) // Bukan realisasi manager sendiri
             ->whereNotNull('user_id') // Yang sudah di-assign ke employee
             ->with(['kpi', 'user']) // Load relasi
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'asc');
     }
 
     public static function form(Form $form): Form
@@ -143,7 +141,14 @@ class EmployeeKpiApprovalResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('kpi.code_id', 'asc')
             ->columns([
+                Tables\Columns\TextColumn::make('kpi.code_id')
+                    ->label('ID KPI')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->weight('bold'),
                 Tables\Columns\TextColumn::make('kpi.activity')
                     ->label('KPI Activity')
                     ->searchable()
@@ -171,14 +176,6 @@ class EmployeeKpiApprovalResource extends Resource
                     ->sortable()
                     ->badge()
                     ->color('primary'),
-
-                Tables\Columns\IconColumn::make('is_cutoff')
-                    ->label('Final')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-lock-closed')
-                    ->falseIcon('heroicon-o-lock-open')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
 
                 Tables\Columns\BadgeColumn::make('approval_status')
                     ->label('Approval Status')
@@ -227,7 +224,19 @@ class EmployeeKpiApprovalResource extends Resource
 
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Employee')
-                    ->relationship('user', 'name'),
+                    ->options(function () {
+                        $user = Auth::user();
+                        if (!$user || !$user->divisi_id) {
+                            return [];
+                        }
+                        
+                        return \App\Models\User::where('divisi_id', $user->divisi_id)
+                            ->where('id', '!=', $user->id) // Exclude manager sendiri
+                            ->where('is_active', true)
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable(),
 
                 Tables\Filters\SelectFilter::make('periode')
                     ->label('Period')
@@ -237,11 +246,6 @@ class EmployeeKpiApprovalResource extends Resource
                         'Q3-2025' => 'Q3 2025',
                         'Q4-2025' => 'Q4 2025',
                     ]),
-
-                Tables\Filters\TernaryFilter::make('is_cutoff')
-                    ->label('Final Status')
-                    ->trueLabel('Final')
-                    ->falseLabel('Draft'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

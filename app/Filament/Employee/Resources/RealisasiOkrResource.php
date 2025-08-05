@@ -89,7 +89,7 @@ class RealisasiOkrResource extends Resource
 
         return parent::getEloquentQuery()
             ->where('user_id', $user->id) // Hanya realisasi employee yang login
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'asc');
     }
 
     public static function form(Form $form): Form
@@ -111,7 +111,6 @@ class RealisasiOkrResource extends Resource
                         // Hanya OKR individual yang assigned ke employee ini
                         return KelolaOKR::where('user_id', $user->id)
                             ->where('assignment_type', 'individual')
-                            ->whereNotNull('parent_id')
                             ->whereIn('tipe', ['okr', 'okr individu'])
                             ->pluck('activity', 'id');
                     })
@@ -161,7 +160,7 @@ class RealisasiOkrResource extends Resource
                     ->afterStateUpdated(function ($state, $set, $get) {
                         // Cek apakah sudah ada realisasi untuk sub-activity ini di periode yang sama
                         $user = Auth::user();
-                        $periode = request()->input('periode', 'Q3-2025');
+                        $periode = request()->input('periode', 'Q2-2025');
                         $kpiId = $get('kpi_id');
 
                         // if ($state && $kpiId) {
@@ -199,11 +198,8 @@ class RealisasiOkrResource extends Resource
                         'Q2-2025' => 'Q2 2025 (Apr-Jun)',
                         'Q3-2025' => 'Q3 2025 (Jul-Sep)',
                         'Q4-2025' => 'Q4 2025 (Oct-Des)',
-                        'H1-2025' => 'H1 2025 (Jan-Jun)',
-                        'H2-2025' => 'H2 2025 (Jul-Des)',
-                        'Tahunan-2025' => 'Tahunan 2025',
                     ])
-                    ->default('Q3-2025')
+                    ->default('Q2-2025')
                     ->required()
                     ->live()
                     ->afterStateUpdated(function ($state, $set, $get) {
@@ -304,20 +300,20 @@ class RealisasiOkrResource extends Resource
                     ->badge()
                     ->color('primary'),
 
-                Tables\Columns\IconColumn::make('is_cutoff')
-                    ->label('Final')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-lock-closed')
-                    ->falseIcon('heroicon-o-lock-open')
-                    ->trueColor('success')
-                    ->falseColor('warning')
-                    ->sortable()
-                    ->tooltip(function ($record) {
-                        if ($record->is_cutoff) {
-                            return 'Data sudah final dan tidak dapat diubah';
-                        }
-                        return 'Data masih bisa diubah';
-                    }),
+                // Tables\Columns\IconColumn::make('is_cutoff')
+                //     ->label('Final')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-lock-closed')
+                //     ->falseIcon('heroicon-o-lock-open')
+                //     ->trueColor('success')
+                //     ->falseColor('warning')
+                //     ->sortable()
+                //     ->tooltip(function ($record) {
+                //         if ($record->is_cutoff) {
+                //             return 'Data sudah final dan tidak dapat diubah';
+                //         }
+                //         return 'Data masih bisa diubah';
+                //     }),
 
                 Tables\Columns\BadgeColumn::make('approval_status')
                     ->label('Status Approval')
@@ -398,24 +394,24 @@ class RealisasiOkrResource extends Resource
                     ->query(fn (Builder $query) => $query->whereNotNull('rejected_at'))
                     ->toggle(),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
-                        Forms\Components\DatePicker::make('tanggal_dari')
-                            ->label('Tanggal Dari'),
-                        Forms\Components\DatePicker::make('tanggal_sampai')
-                            ->label('Tanggal Sampai'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['tanggal_dari'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['tanggal_sampai'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
-                    }),
+                // Tables\Filters\Filter::make('created_at')
+                //     ->form([
+                //         Forms\Components\DatePicker::make('tanggal_dari')
+                //             ->label('Tanggal Dari'),
+                //         Forms\Components\DatePicker::make('tanggal_sampai')
+                //             ->label('Tanggal Sampai'),
+                //     ])
+                //     ->query(function (Builder $query, array $data): Builder {
+                //         return $query
+                //             ->when(
+                //                 $data['tanggal_dari'],
+                //                 fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                //             )
+                //             ->when(
+                //                 $data['tanggal_sampai'],
+                //                 fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                //             );
+                //     }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -465,24 +461,27 @@ class RealisasiOkrResource extends Resource
                     }),
 
                 // Action untuk set final/cutoff
-                Tables\Actions\Action::make('set_final')
-                    ->label('Set Final')
-                    ->icon('heroicon-o-lock-closed')
-                    ->color('warning')
-                    ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
-                    ->requiresConfirmation()
-                    ->modalHeading('Set Data Final')
-                    ->modalDescription('Apakah Anda yakin ingin menetapkan data ini sebagai final? Setelah final, data tidak dapat diubah lagi.')
-                    ->action(function ($record) {
-                        $record->update(['is_cutoff' => true]);
+                // Tables\Actions\Action::make('set_final')
+                //     ->label('Set Final')
+                //     ->icon('heroicon-o-lock-closed')
+                //     ->color('warning')
+                //     ->visible(fn($record) => !$record->is_cutoff && !$record->approved_at)
+                //     ->requiresConfirmation()
+                //     ->modalHeading('Set Data Final')
+                //     ->modalDescription('Apakah Anda yakin ingin menetapkan data ini sebagai final? Setelah final, data tidak dapat diubah lagi.')
+                    
+                    // ->action(function ($record) {
+                    //     $record->update(['is_cutoff' => true]);
 
-                        Notification::make()
-                            ->success()
-                            ->title('Data berhasil di-set final')
-                            ->body('Data realisasi OKR tidak dapat diubah lagi.')
-                            ->send();
-                    }),
+                    //     Notification::make()
+                    //         ->success()
+                    //         ->title('Data berhasil di-set final')
+                    //         ->body('Data realisasi OKR tidak dapat diubah lagi.')
+                    //         ->send();
+                    // }),
             ])
+
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

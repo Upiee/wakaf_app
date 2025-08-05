@@ -211,11 +211,16 @@ class KelolaKPI extends Model
             $totalAchievement += $achievement;
         }
 
-        $childrens = $this->childrens()->where('is_active', true)->get();
+        $childrens = $this->childrens()->where('is_active', operator: true)->get();
 
         if ($childrens->count() > 0) {
             foreach ($childrens as $child) {
-                $totalAchievement += $child->achievement;
+                // $totalAchievement += $child->achievement;
+                $subACtivities = $child->subActivities()->where('is_active', true)->get();
+                foreach ($subACtivities as $subActivity) {
+                    $achievement = $subActivity->realisasi_kpi_total ?? 0; // Default to 0 if no achievement
+                    $totalAchievement += $achievement / ($childrens->count());
+                }
             }
         }
 

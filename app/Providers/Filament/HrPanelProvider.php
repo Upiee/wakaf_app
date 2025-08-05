@@ -31,7 +31,6 @@ class HrPanelProvider extends PanelProvider
             ->id('hr')
             ->path('hr')
             ->login()
-            ->registration()
             ->brandLogo('https://r2.wakafsalman.or.id/logo_baru_ws.jpg')
             ->brandLogoHeight('50px')
             ->colors([
@@ -41,7 +40,7 @@ class HrPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Hr/Pages'), for: 'App\\Filament\\Hr\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Hr\Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Hr/Widgets'), for: 'App\\Filament\\Hr\\Widgets')
             ->widgets([

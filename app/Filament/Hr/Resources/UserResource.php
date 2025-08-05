@@ -142,23 +142,24 @@ class UserResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('reset_password')
-                    ->label('Reset Password')
-                    ->icon('heroicon-o-key')
-                    ->color('warning')
-                    ->action(function (User $record) {
-                        $newPassword = 'password123';
-                        $record->update(['password' => Hash::make($newPassword)]);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Password berhasil direset')
-                            ->body("Password baru: {$newPassword}")
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Reset Password User')
-                    ->modalDescription('Password akan direset ke "password123". User dapat menggantinya setelah login.')
-                    ->modalSubmitActionLabel('Reset'),
+                // Tables\Actions\Action::make('reset_password')
+                //     ->label('Reset Password')
+                //     ->icon('heroicon-o-key')
+                //     ->color('warning')
+                //     ->action(function (User $record) {
+                //         $newPassword = 'password123';
+                //         $record->update(['password' => Hash::make($newPassword)]);
+                //         \Filament\Notifications\Notification::make()
+                //             ->title('Password berhasil direset')
+                //             ->body("Password baru: {$newPassword}")
+                //             ->success()
+                //             ->send();
+                //     })
+                //     ->requiresConfirmation()
+                //     ->modalHeading('Reset Password User')
+                //     ->modalDescription('Password akan direset ke "password123". User dapat menggantinya setelah login.')
+                //     ->modalSubmitActionLabel('Reset'),
+                    
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

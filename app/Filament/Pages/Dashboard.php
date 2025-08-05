@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Pages;
+// namespace App\Filament\Pages;
 
-use Filament\Pages\Dashboard as BaseDashboard;
+// use Filament\Pages\Dashboard as BaseDashboard;
 
-class Dashboard extends BaseDashboard
-{
-protected static ?int $navigationSort = 1;
-}
+// class Dashboard extends BaseDashboard
+// {
+// protected static ?int $navigationSort = 1;
+// }

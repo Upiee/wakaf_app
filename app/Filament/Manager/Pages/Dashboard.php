@@ -21,7 +21,8 @@ class Dashboard extends BaseDashboard
     public function getSubheading(): ?string
     {
         $user = Auth::user();
-        return "Selamat datang, {$user->name}! Silahkan Kelola performa divisi Anda.";
+        
+        return "Selamat datang, {$user->name}! Silahkan kelola performa divisi Anda dengan optimal.";
     }
 
     public function getWidgets(): array
@@ -47,6 +48,7 @@ class Dashboard extends BaseDashboard
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Manager\Widgets\DivisionPerformanceSummary::class,
             \App\Filament\Manager\Widgets\QuickStats::class,
         ];
     }

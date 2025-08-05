@@ -55,8 +55,7 @@ class MyOkrProgressResource extends Resource
             ->where('divisi_id', $user->divisi_id) // OKR untuk divisi manager
             ->where('tipe', 'LIKE', 'okr%')
             ->where('assignment_type', 'divisi') // Hanya OKR level divisi
-            ->whereNull('user_id') // Tidak di-assign ke user spesifik (divisi level)
-            ->orderBy('created_at', 'desc');
+            ->whereNull('user_id'); // Tidak di-assign ke user spesifik (divisi level)
     }
 
     public static function form(Form $form): Form
@@ -138,6 +137,7 @@ class MyOkrProgressResource extends Resource
     {
         return $table
             ->recordUrl(null)
+            ->defaultSort('code_id', 'asc')
             ->columns([
                 Tables\Columns\TextColumn::make('code_id')
                     ->label('ID OKR')
@@ -221,13 +221,6 @@ class MyOkrProgressResource extends Resource
                     ->label('Periode')
                     ->badge()
                     ->color('info'),
-                Tables\Columns\IconColumn::make('is_editable')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-pencil')
-                    ->falseIcon('heroicon-o-lock-closed')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->date()
@@ -263,11 +256,6 @@ class MyOkrProgressResource extends Resource
                             default => $query,
                         };
                     }),
-                Tables\Filters\TernaryFilter::make('is_editable')
-                    ->label('Status Edit')
-                    ->boolean()
-                    ->trueLabel('Dapat Diedit')
-                    ->falseLabel('Terkunci'),
             ]);
     }
 

@@ -21,7 +21,7 @@ class OkrManagementResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-flag';
     protected static ?string $navigationGroup = 'Manajemen KPI';
-    protected static ?string $navigationLabel = 'OKR Management';
+    protected static ?string $navigationLabel = 'Daftar OKR';
     protected static ?int $navigationSort = 2;
 
     /**
@@ -322,53 +322,53 @@ class OkrManagementResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Detail'),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->is_editable)
-                    ->label('Edit'),
-                Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
-                    ->action(function (KelolaOKR $record) {
-                        $record->update(['is_editable' => !$record->is_editable]);
+                // Tables\Actions\EditAction::make()
+                //     ->visible(fn($record) => $record->is_editable)
+                //     ->label('Edit'),
+                // Tables\Actions\Action::make('toggle_edit')
+                //     ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
+                //     ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                //     ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
+                //     ->action(function (KelolaOKR $record) {
+                //         $record->update(['is_editable' => !$record->is_editable]);
 
-                        \Filament\Notifications\Notification::make()
-                            ->title($record->is_editable ? 'OKR dibuka untuk edit' : 'OKR dikunci dari edit')
-                            ->success()
-                            ->send();
-                    }),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('bulk_lock')
-                        ->label('Kunci Terpilih')
-                        ->icon('heroicon-o-lock-closed')
-                        ->color('danger')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => false]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('OKR terpilih berhasil dikunci')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-                    Tables\Actions\BulkAction::make('bulk_unlock')
-                        ->label('Buka Kunci Terpilih')
-                        ->icon('heroicon-o-lock-open')
-                        ->color('success')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => true]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('OKR terpilih berhasil dibuka')
-                                ->success()
-                                ->send();
-                        }),
-                ]),
+                //         \Filament\Notifications\Notification::make()
+                //             ->title($record->is_editable ? 'OKR dibuka untuk edit' : 'OKR dikunci dari edit')
+                //             ->success()
+                //             ->send();
+                //     }),
+                // Tables\Actions\DeleteAction::make(),
             ]);
+            // ->bulkActions([
+            //     Tables\Actions\BulkActionGroup::make([
+            //         Tables\Actions\DeleteBulkAction::make(),
+            //         Tables\Actions\BulkAction::make('bulk_lock')
+            //             ->label('Kunci Terpilih')
+            //             ->icon('heroicon-o-lock-closed')
+            //             ->color('danger')
+            //             ->action(function ($records) {
+            //                 $records->each(fn($record) => $record->update(['is_editable' => false]));
+
+            //                 \Filament\Notifications\Notification::make()
+            //                     ->title('OKR terpilih berhasil dikunci')
+            //                     ->success()
+            //                     ->send();
+            //             })
+            //             ->requiresConfirmation(),
+            //         Tables\Actions\BulkAction::make('bulk_unlock')
+            //             ->label('Buka Kunci Terpilih')
+            //             ->icon('heroicon-o-lock-open')
+            //             ->color('success')
+            //             ->action(function ($records) {
+            //                 $records->each(fn($record) => $record->update(['is_editable' => true]));
+
+            //                 \Filament\Notifications\Notification::make()
+            //                     ->title('OKR terpilih berhasil dibuka')
+            //                     ->success()
+            //                     ->send();
+            //             }),
+            //     ]),
+            // ]);
     }
 
     public static function getRelations(): array

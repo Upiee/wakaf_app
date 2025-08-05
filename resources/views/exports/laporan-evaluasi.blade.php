@@ -73,6 +73,7 @@
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $kpi['kode'] }}</td>
                 <td>{{ $kpi['activity'] }}</td>
+                <td>{{ $kpi['target'] }}</td>
                 <td>-</td>
                 <td>{{ $kpi['nilai'] }}</td>
                 <td>{{ $kpi['nilai'] }}/100</td>
@@ -105,6 +106,7 @@
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $okr['kode'] }}</td>
                 <td>{{ $okr['activity'] }}</td>
+                <td>{{ $okr['target'] }}</td>
                 <td>-</td>
                 <td>{{ $okr['nilai'] }}</td>
                 <td>{{ $okr['nilai'] }}/100</td>

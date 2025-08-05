@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manager\Widgets;
+namespace App\Filament\Hr\Widgets;
 
 use App\Models\RealisasiKpi;
 use App\Models\RealisasiOkr;
@@ -8,23 +8,21 @@ use App\Models\User;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
-class TopPerformers extends BaseWidget
+class TopPerformersAllDivisions extends BaseWidget
 {
-    protected static ?string $heading = 'Top Performers Q2-2025';
-    protected static ?int $sort = 4;
+    protected static ?string $heading = 'Top Performers Across All Divisions (Q2-2025)';
+    protected static ?int $sort = 2;
     protected int | string | array $columnSpan = 'full';
 
     protected function getTableQuery(): Builder
     {
-        $currentQuarter = 'Q2-2025'; // Using Q2-2025 where we have data
-        $userDivisi = Auth::user()->divisi_id;
+        $currentQuarter = 'Q2-2025';
         
         return User::query()
-            ->where('users.divisi_id', $userDivisi)
-            ->where('users.id', '!=', Auth::id())
+            ->where('role', '!=', 'hr')
+            ->where('role', '!=', 'manager')
             ->where(function($query) use ($currentQuarter) {
                 $query->whereHas('realisasiKpis', function ($q) use ($currentQuarter) {
                     $q->where('periode', $currentQuarter);
@@ -41,13 +39,19 @@ class TopPerformers extends BaseWidget
                 $join->on('users.id', '=', 'ro.user_id')
                      ->where('ro.periode', '=', $currentQuarter);
             })
+            ->leftJoin('divisis as d', 'users.divisi_id', '=', 'd.id')
             ->selectRaw('
-                users.*,
+                users.id,
+                users.name,
+                users.email,
+                users.created_at,
+                users.updated_at,
+                d.nama as divisi_nama,
                 COALESCE(AVG(rk.nilai), 0) as avg_kpi,
                 COALESCE(AVG(ro.nilai), 0) as avg_okr,
                 (COALESCE(AVG(rk.nilai), 0) + COALESCE(AVG(ro.nilai), 0)) / 2 as total_score
             ')
-            ->groupBy('users.id')
+            ->groupBy('users.id', 'users.name', 'users.email', 'users.created_at', 'users.updated_at', 'd.nama')
             ->orderByDesc('total_score');
     }
 
@@ -61,27 +65,11 @@ class TopPerformers extends BaseWidget
                     ->sortable()
                     ->searchable(),
                     
-                Tables\Columns\TextColumn::make('avg_kpi_score')
-                    ->label('Avg KPI Score')
-                    ->getStateUsing(function ($record) {
-                        return number_format($record->avg_kpi ?? 0, 1) . '%';
-                    })
+                Tables\Columns\TextColumn::make('divisi_nama')
+                    ->label('Division')
                     ->badge()
-                    ->color(function ($state) {
-                        $score = (float) str_replace('%', '', $state);
-                        return $score >= 90 ? 'success' : ($score >= 75 ? 'warning' : 'danger');
-                    }),
-                    
-                Tables\Columns\TextColumn::make('avg_okr_score')
-                    ->label('Avg OKR Score')
-                    ->getStateUsing(function ($record) {
-                        return number_format($record->avg_okr ?? 0, 1) . '%';
-                    })
-                    ->badge()
-                    ->color(function ($state) {
-                        $score = (float) str_replace('%', '', $state);
-                        return $score >= 90 ? 'success' : ($score >= 75 ? 'warning' : 'danger');
-                    }),
+                    ->color('primary')
+                    ->sortable(),
                     
                 Tables\Columns\TextColumn::make('total_score')
                     ->label('Total Score')
@@ -95,8 +83,30 @@ class TopPerformers extends BaseWidget
                     })
                     ->sortable(),
                     
+                Tables\Columns\TextColumn::make('avg_kpi_score')
+                    ->label('KPI Score')
+                    ->getStateUsing(function ($record) {
+                        return number_format($record->avg_kpi ?? 0, 1) . '%';
+                    })
+                    ->badge()
+                    ->color(function ($state) {
+                        $score = (float) str_replace('%', '', $state);
+                        return $score >= 90 ? 'success' : ($score >= 75 ? 'warning' : 'danger');
+                    }),
+                    
+                Tables\Columns\TextColumn::make('avg_okr_score')
+                    ->label('OKR Score')
+                    ->getStateUsing(function ($record) {
+                        return number_format($record->avg_okr ?? 0, 1) . '%';
+                    })
+                    ->badge()
+                    ->color(function ($state) {
+                        $score = (float) str_replace('%', '', $state);
+                        return $score >= 90 ? 'success' : ($score >= 75 ? 'warning' : 'danger');
+                    }),
+                    
                 Tables\Columns\TextColumn::make('total_completed')
-                    ->label('Completed')
+                    ->label('Completed Tasks')
                     ->getStateUsing(function ($record) {
                         $currentQuarter = 'Q2-2025';
                         $kpi = $record->realisasiKpis()->where('periode', $currentQuarter)->count();
@@ -104,10 +114,17 @@ class TopPerformers extends BaseWidget
                         return $kpi + $okr;
                     })
                     ->badge()
-                    ->color('primary'),
+                    ->color('info'),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('divisi_id')
+                    ->label('Filter by Division')
+                    ->relationship('divisi', 'nama')
+                    ->searchable()
+                    ->preload(),
             ])
             ->defaultSort('total_score', 'desc')
-            ->paginated([5, 10])
-            ->defaultPaginationPageOption(5);
+            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(10);
     }
 }

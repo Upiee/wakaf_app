@@ -25,7 +25,6 @@ class ManagerPanelProvider extends PanelProvider
             ->id('manager')
             ->path('manager')
             ->login()
-            ->registration()
             ->brandLogo('https://r2.wakafsalman.or.id/logo_baru_ws.jpg')
             ->brandLogoHeight('50px')
             ->colors([

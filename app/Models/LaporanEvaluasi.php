@@ -18,6 +18,7 @@ class LaporanEvaluasi extends Model
         'divisi_id',
         'periode_mulai',
         'periode_selesai',
+        'periode_quartal',
         'tipe_laporan',
         'data_laporan',
         'kpi_references',
@@ -301,15 +302,15 @@ class LaporanEvaluasi extends Model
      */
     private function populateIndividualData()
     {
-        // Ambil realisasi KPI berdasarkan user dan periode
+        // Ambil realisasi KPI berdasarkan user dan quartal
         $realisasiKpi = RealisasiKpi::where('user_id', $this->user_id)
-            ->whereBetween('created_at', [$this->periode_mulai, $this->periode_selesai])
+            ->where('periode', $this->periode_quartal ?? 'Q3-2025')
             ->with('kpi')
             ->get();
 
-        // Ambil realisasi OKR berdasarkan user dan periode
+        // Ambil realisasi OKR berdasarkan user dan quartal
         $realisasiOkr = RealisasiOkr::where('user_id', $this->user_id)
-            ->whereBetween('created_at', [$this->periode_mulai, $this->periode_selesai])
+            ->where('periode', $this->periode_quartal ?? 'Q3-2025')
             ->with('okr')
             ->get();
 
@@ -339,16 +340,16 @@ class LaporanEvaluasi extends Model
         // Ambil semua user di divisi
         $userIds = User::where('divisi_id', $this->divisi_id)->pluck('id');
 
-        // Ambil realisasi KPI untuk semua user di divisi
+        // Ambil realisasi KPI untuk semua user di divisi berdasarkan quartal
         $realisasiKpi = RealisasiKpi::whereIn('user_id', $userIds)
-            ->whereBetween('created_at', [$this->periode_mulai, $this->periode_selesai])
+            ->where('periode', $this->periode_quartal ?? 'Q3-2025')
             ->with('kpi')
             ->get();
 
-        // Ambil realisasi OKR untuk semua user di divisi
+        // Ambil realisasi OKR untuk semua user di divisi berdasarkan quartal
         $realisasiOkr = RealisasiOkr::whereIn('user_id', $userIds)
-            ->whereBetween('created_at', [$this->periode_mulai, $this->periode_selesai])
-            ->with('okr') 
+            ->where('periode', $this->periode_quartal ?? 'Q3-2025')
+            ->with('okr')
             ->get();
 
         // Hitung data
@@ -392,8 +393,9 @@ class LaporanEvaluasi extends Model
             
             $references[] = [
                 'kpi_id' => $realisasi->kpi_id,
-                'kode' => $realisasi->kpi->activity ?? 'N/A', // Gunakan activity sebagai kode sementara
+                'kode' => $realisasi->kpi->code_id ?? 'N/A',
                 'activity' => $realisasi->kpi->activity ?? 'N/A',
+                'target' => $realisasi->kpi->timeline_realisasi ?? $realisasi->kpi->output ?? 100,
                 'nilai' => $realisasi->nilai,
                 'periode' => $realisasi->periode,
                 'skor' => $score
@@ -430,8 +432,10 @@ class LaporanEvaluasi extends Model
             
             $references[] = [
                 'okr_id' => $realisasi->okr_id,
-                'kode' => $realisasi->okr->activity ?? 'N/A', // Gunakan activity sebagai kode sementara
+                'kode' => $realisasi->okr->code_id ?? 'N/A',
                 'judul' => $realisasi->okr->activity ?? 'N/A',
+                'activity' => $realisasi->okr->activity ?? 'N/A',
+                'target' => $realisasi->okr->timeline_realisasi ?? $realisasi->okr->output ?? 100,
                 'nilai' => $realisasi->nilai,
                 'periode' => $realisasi->periode,
                 'skor' => $score

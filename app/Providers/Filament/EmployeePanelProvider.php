@@ -28,7 +28,6 @@ class EmployeePanelProvider extends PanelProvider
             ->id('employee')
             ->path('employee')
             ->login()
-            ->registration()
             ->brandLogo('https://r2.wakafsalman.or.id/logo_baru_ws.jpg')
             ->brandLogoHeight('50px')
             ->colors([

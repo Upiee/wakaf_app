@@ -78,8 +78,7 @@ class OkrManagementResource extends Resource
                 // Tampilkan OKR bertipe 'okr' (termasuk 'okr divisi', 'okr individu', dll)
                 $query->where('tipe', 'LIKE', '%okr%')
                     ->orWhere('tipe', 'okr');
-            })
-            ->orderBy('created_at', 'desc');
+            });
     }
 
     public static function form(Form $form): Form
@@ -119,10 +118,10 @@ class OkrManagementResource extends Resource
                             ->afterStateUpdated(function (callable $set, $state) {
                                 if ($state === 'divisi') {
                                     $set('user_id', null);
-                                    $set('tipe', 'kpi divisi');
+                                    $set('tipe', 'okr divisi');
                                 } elseif ($state === 'individual') {
                                     $set('divisi_id', null);
-                                    $set('tipe', 'kpi individu');
+                                    $set('tipe', 'okr individu');
                                 }
                             }),
 
@@ -138,7 +137,7 @@ class OkrManagementResource extends Resource
                                 if ($get('divisi_id')) {
                                     $divisi = \App\Models\Divisi::find($get('divisi_id'));
                                     $count = $divisi ? $divisi->users()->count() : 0;
-                                    return "📊 {$count} karyawan akan menerima KPI ini";
+                                    return "📊 {$count} karyawan akan menerima OKR ini";
                                 }
                                 return 'Pilih divisi untuk assignment';
                             }),
@@ -172,7 +171,7 @@ class OkrManagementResource extends Resource
                             ->hidden(),
                         Forms\Components\TextInput::make('activity')
                             ->required()
-                            ->label('Aktivitas/Deskripsi KPI')
+                            ->label('Aktivitas/Deskripsi OKR')
                             ->placeholder('Contoh: Meningkatkan efisiensi operasional divisi')
                             ->disabled(fn($record) => $record && !$record->is_editable),
 
@@ -180,8 +179,8 @@ class OkrManagementResource extends Resource
                             ->label('ID OKR')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: OKR-2025-001')
-                            ->helperText('ID unik untuk OKR ini, gunakan format yang konsisten')
+                            ->placeholder('ID OKR')
+                            ->helperText('Contoh: OKR-Q1-DIV-E-01')
                             ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
 
@@ -224,36 +223,34 @@ class OkrManagementResource extends Resource
                                     ->rows(2)
                                     ->placeholder('Cara mengukur progress...')
                                     ->columnSpan(2),
-                                Forms\Components\TextInput::make('progress_percentage')
-                                    ->label('Progress (%)')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->suffix('%')
-                                    ->default(0),
+                                // Forms\Components\TextInput::make('progress_percentage')
+                                //     ->label('Progress (%)')
+                                //     ->numeric()
+                                //     ->minValue(0)
+                                //     ->maxValue(100)
+                                //     ->suffix('%')
+                                //     ->default(0),
                                 Forms\Components\Select::make('status')
                                     ->label('Status')
                                     ->options([
                                         'not_started' => 'Belum Dimulai',
                                         'in_progress' => 'Sedang Berjalan',
-                                        'completed' => 'Selesai',
-                                        'on_hold' => 'Ditunda',
                                     ])
                                     ->default('not_started')
                                     ->required(),
-                                Forms\Components\Textarea::make('dokumen')
-                                    ->label('Dokumen/Link')
-                                    ->rows(1)
-                                    ->placeholder('Link atau nama dokumen...')
-                                    ->columnSpan(2),
+                                // Forms\Components\Textarea::make('dokumen')
+                                //     ->label('Dokumen/Link')
+                                //     ->rows(1)
+                                //     ->placeholder('Link atau nama dokumen...')
+                                //     ->columnSpan(2),
                             ])
                             ->columns(4)
                             ->defaultItems(1)
                             ->addActionLabel('+ Tambah Detail Progress')
                             ->reorderableWithButtons()
                             ->collapsible()
-                            ->cloneable()
-                            ->helperText('💡 Tambahkan detail progress dengan bobot untuk OKR ini. Total bobot harus = 100%'),
+                            ->cloneable(),
+                            // ->helperText('💡 Tambahkan detail progress dengan bobot untuk OKR ini. Total bobot harus = 100%'),
                     ]),
 
                 // Form Konfigurasi    
@@ -275,9 +272,6 @@ class OkrManagementResource extends Resource
                                 '2025-Q2' => 'Q2 2025',
                                 '2025-Q3' => 'Q3 2025',
                                 '2025-Q4' => 'Q4 2025',
-                                '2025-H1' => 'H1 2025',
-                                '2025-H2' => 'H2 2025',
-                                '2025' => 'Tahunan 2025',
                             ])
                             ->searchable(),
                         Forms\Components\TextInput::make('timeline')
@@ -286,13 +280,13 @@ class OkrManagementResource extends Resource
                             ->placeholder('Contoh: Akhir Desember 2025'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Pengaturan')
-                    ->schema([
-                        Forms\Components\Toggle::make('is_editable')
-                            ->label('Dapat Diedit')
-                            ->default(true)
-                            ->helperText('Jika dimatikan, OKR ini tidak dapat diedit oleh user lain'),
-                    ]),
+                // Forms\Components\Section::make('Pengaturan')
+                //     ->schema([
+                //         Forms\Components\Toggle::make('is_editable')
+                //             ->label('Dapat Diedit')
+                //             ->default(true)
+                //             ->helperText('Jika dimatikan, OKR ini tidak dapat diedit oleh user lain'),
+                //     ]),
             ]);
     }
 
@@ -300,6 +294,7 @@ class OkrManagementResource extends Resource
     {
         return $table
             ->recordUrl(null)
+            ->defaultSort('created_at', 'asc')
             ->columns([
                 Tables\Columns\TextColumn::make('code_id')
                     ->label('ID OKR')
@@ -383,13 +378,13 @@ class OkrManagementResource extends Resource
                     ->label('Periode')
                     ->badge()
                     ->color('info'),
-                Tables\Columns\IconColumn::make('is_editable')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-pencil')
-                    ->falseIcon('heroicon-o-lock-closed')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                // Tables\Columns\IconColumn::make('is_editable')
+                //     ->label('Status')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-pencil')
+                //     ->falseIcon('heroicon-o-lock-closed')
+                //     ->trueColor('success')
+                //     ->falseColor('danger'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->date()
@@ -452,58 +447,10 @@ class OkrManagementResource extends Resource
                             ->send();
                     })
                     ->requiresConfirmation(),
-                Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
-                    ->action(function (KelolaOKR $record) {
-                        $record->update(['is_editable' => !$record->is_editable]);
-
-                        \Filament\Notifications\Notification::make()
-                            ->title($record->is_editable ? 'OKR dibuka untuk edit' : 'OKR dikunci dari edit')
-                            ->success()
-                            ->send();
-                    }),
                 Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('bulk_lock')
-                        ->label('Kunci Terpilih')
-                        ->icon('heroicon-o-lock-closed')
-                        ->color('danger')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => false]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('OKR terpilih berhasil dikunci')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-                    Tables\Actions\BulkAction::make('bulk_unlock')
-                        ->label('Buka Kunci Terpilih')
-                        ->icon('heroicon-o-lock-open')
-                        ->color('success')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => true]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('OKR terpilih berhasil dibuka')
-                                ->success()
-                                ->send();
-                        }),
-                ]),
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
 
     public static function getPages(): array
     {

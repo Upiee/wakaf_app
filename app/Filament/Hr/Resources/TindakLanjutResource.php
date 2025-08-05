@@ -45,7 +45,7 @@ class TindakLanjutResource extends Resource
                                     ->mapWithKeys(function ($laporan) {
                                         return [$laporan->getAttribute('id') => 
                                             ($laporan->user?->name ?? 'N/A') . ' - ' . 
-                                            ($laporan->getAttribute('periode') ?? 'N/A') . ' (Score: ' . 
+                                            ($laporan->getAttribute('periode_quartal') ?? 'N/A') . ' (Score: ' . 
                                             number_format($laporan->getAttribute('rata_rata_score') ?? 0, 1) . '%)'
                                         ];
                                     });
@@ -62,14 +62,30 @@ class TindakLanjutResource extends Resource
                                 }
                             }),
 
-                        Forms\Components\Select::make('user_id')
-                            ->label('Karyawan')
-                            ->relationship('user', 'name')
-                            ->getOptionLabelFromRecordUsing(fn($record) => 
-                                $record->name . ' - ' . ($record->divisi->nama ?? 'No Division'))
-                            ->searchable()
+                        Forms\Components\Hidden::make('user_id')
                             ->required()
-                            ->disabled(fn($get) => $get('laporan_evaluasi_id')),
+                            ->afterStateHydrated(function ($component, $state, $get) {
+                                if (!$state && $get('laporan_evaluasi_id')) {
+                                    $laporan = LaporanEvaluasi::find($get('laporan_evaluasi_id'));
+                                    if ($laporan) {
+                                        $component->state($laporan->user_id);
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\Placeholder::make('karyawan_info')
+                            ->label('Karyawan Terkait')
+                            ->content(function ($get) {
+                                $laporanId = $get('laporan_evaluasi_id');
+                                if ($laporanId) {
+                                    $laporan = LaporanEvaluasi::with('user.divisi')->find($laporanId);
+                                    if ($laporan && $laporan->user) {
+                                        return $laporan->user->name . ' - ' . ($laporan->user->divisi->nama ?? 'No Division');
+                                    }
+                                }
+                                return 'Pilih laporan evaluasi terlebih dahulu';
+                            })
+                            ->visible(fn($get) => $get('laporan_evaluasi_id')),
                     ])->columns(2),
 
                 // Detail Tindak Lanjut

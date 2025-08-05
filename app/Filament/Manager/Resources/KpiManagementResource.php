@@ -78,8 +78,7 @@ class KpiManagementResource extends Resource
                 // Tampilkan KPI bertipe 'kpi' (termasuk 'kpi divisi', 'kpi individu', dll)
                 $query->where('tipe', 'LIKE', '%kpi%')
                     ->orWhere('tipe', 'kpi');
-            })
-            ->orderBy('created_at', 'desc');
+            });
     }
 
     public static function form(Form $form): Form
@@ -156,9 +155,8 @@ class KpiManagementResource extends Resource
                                     $options[$u->id] = '#' . $u->id . ' ' . $u->name . ' (' . ($u->divisi->nama ?? 'No Division') . ')';
                                 }
                                 return $options;
-                            })
-                            ->helperText('Pilih karyawan spesifik untuk assignment'),
-
+                            }),
+                            
                         Forms\Components\Select::make('priority')
                             ->label('Prioritas')
                             ->options([
@@ -179,8 +177,8 @@ class KpiManagementResource extends Resource
                             ->label('ID KPI')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: KPI-2025-001')
-                            ->helperText('ID unik untuk KPI ini, gunakan format yang konsisten')
+                            ->placeholder('ID KPI')
+                            ->helperText('Contoh: KPI-Q1-DIV-E-01')
                             ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
 
@@ -210,13 +208,13 @@ class KpiManagementResource extends Resource
                                     ->rows(2)
                                     ->placeholder('Cara mengukur progress...')
                                     ->columnSpan(2),
-                                Forms\Components\TextInput::make('progress_percentage')
-                                    ->label('Progress (%)')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->suffix('%')
-                                    ->default(0),
+                                // Forms\Components\TextInput::make('progress_percentage')
+                                //     ->label('Progress (%)')
+                                //     ->numeric()
+                                //     ->minValue(0)
+                                //     ->maxValue(100)
+                                //     ->suffix('%')
+                                //     ->default(0),
                                 Forms\Components\Select::make('status')
                                     ->label('Status')
                                     ->options([
@@ -227,19 +225,19 @@ class KpiManagementResource extends Resource
                                     ])
                                     ->default('not_started')
                                     ->required(),
-                                Forms\Components\Textarea::make('dokumen')
-                                    ->label('Dokumen/Link')
-                                    ->rows(1)
-                                    ->placeholder('Link atau nama dokumen...')
-                                    ->columnSpan(2),
+                                // Forms\Components\Textarea::make('dokumen')
+                                //     ->label('Dokumen/Link')
+                                //     ->rows(1)
+                                //     ->placeholder('Link atau nama dokumen...')
+                                //     ->columnSpan(2),
                             ])
                             ->columns(4)
                             ->defaultItems(1)
                             ->addActionLabel('+ Tambah Detail Progress')
                             ->reorderableWithButtons()
                             ->collapsible()
-                            ->cloneable()
-                            ->helperText('💡 Tambahkan detail progress untuk KPI ini'),
+                            ->cloneable(),
+                            // ->helperText('💡 Tambahkan detail progress untuk KPI ini'),
                     ]),
 
 
@@ -260,9 +258,6 @@ class KpiManagementResource extends Resource
                                 '2025-Q2' => 'Q2 2025',
                                 '2025-Q3' => 'Q3 2025',
                                 '2025-Q4' => 'Q4 2025',
-                                '2025-H1' => 'H1 2025',
-                                '2025-H2' => 'H2 2025',
-                                '2025' => 'Tahunan 2025',
                             ])
                             ->searchable(),
                         // Forms\Components\TextInput::make('timeline')
@@ -270,13 +265,13 @@ class KpiManagementResource extends Resource
                         //     ->placeholder('Contoh: Akhir Juni 2025'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Pengaturan')
-                    ->schema([
-                        Forms\Components\Toggle::make('is_editable')
-                            ->label('Dapat Diedit')
-                            ->default(true)
-                            ->helperText('Jika dimatikan, KPI ini tidak dapat diedit oleh user lain'),
-                    ]),
+                // Forms\Components\Section::make('Pengaturan')
+                    // ->schema([
+                    //     Forms\Components\Toggle::make('is_editable')
+                    //         ->label('Dapat Diedit')
+                    //         ->default(true)
+                    //         ->helperText('Jika dimatikan, KPI ini tidak dapat diedit oleh user lain'),
+                    // ]),
             ]);
     }
 
@@ -284,6 +279,7 @@ class KpiManagementResource extends Resource
     {
         return $table
             ->recordUrl(null)
+            ->defaultSort('created_at', 'asc')
             ->columns([
                 Tables\Columns\TextColumn::make('code_id')
                     ->label('ID KPI')
@@ -366,13 +362,13 @@ class KpiManagementResource extends Resource
                     ->label('Periode')
                     ->badge()
                     ->color('info'),
-                Tables\Columns\IconColumn::make('is_editable')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-pencil')
-                    ->falseIcon('heroicon-o-lock-closed')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                // Tables\Columns\IconColumn::make('is_editable')
+                //     ->label('Status')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-pencil')
+                //     ->falseIcon('heroicon-o-lock-closed')
+                //     ->trueColor('success')
+                //     ->falseColor('danger'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->date()
@@ -434,50 +430,8 @@ class KpiManagementResource extends Resource
                             ->send();
                     })
                     ->requiresConfirmation(),
-                Tables\Actions\Action::make('toggle_edit')
-                    ->label(fn($record) => $record->is_editable ? 'Kunci' : 'Buka Kunci')
-                    ->icon(fn($record) => $record->is_editable ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn($record) => $record->is_editable ? 'danger' : 'success')
-                    ->action(function (KelolaKPI $record) {
-                        $record->update(['is_editable' => !$record->is_editable]);
-
-                        \Filament\Notifications\Notification::make()
-                            ->title($record->is_editable ? 'KPI dibuka untuk edit' : 'KPI dikunci dari edit')
-                            ->success()
-                            ->send();
-                    }),
                 Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('bulk_lock')
-                        ->label('Kunci Terpilih')
-                        ->icon('heroicon-o-lock-closed')
-                        ->color('danger')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => false]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('KPI terpilih berhasil dikunci')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-                    Tables\Actions\BulkAction::make('bulk_unlock')
-                        ->label('Buka Kunci Terpilih')
-                        ->icon('heroicon-o-lock-open')
-                        ->color('success')
-                        ->action(function ($records) {
-                            $records->each(fn($record) => $record->update(['is_editable' => true]));
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('KPI terpilih berhasil dibuka')
-                                ->success()
-                                ->send();
-                        }),
-                ]),
-            ]);
+                ]);
     }
 
     public static function getRelations(): array

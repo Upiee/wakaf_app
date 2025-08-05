@@ -54,8 +54,7 @@ class MyKpiProgressResource extends Resource
             ->where('divisi_id', $user->divisi_id) // KPI untuk divisi manager
             ->where('tipe', 'LIKE', 'kpi%')
             ->where('assignment_type', 'divisi') // Hanya KPI level divisi
-            ->whereNull('user_id') // Tidak di-assign ke user spesifik (divisi level)
-            ->orderBy('created_at', 'desc');
+            ->whereNull('user_id'); // Tidak di-assign ke user spesifik (divisi level)
     }
 
     public static function form(Form $form): Form
@@ -137,6 +136,7 @@ class MyKpiProgressResource extends Resource
     {
         return $table
             ->recordUrl(null)
+            ->defaultSort('code_id', 'asc')
             ->columns([
                 Tables\Columns\TextColumn::make('code_id')
                     ->label('ID KPI')
@@ -219,13 +219,6 @@ class MyKpiProgressResource extends Resource
                     ->label('Periode')
                     ->badge()
                     ->color('info'),
-                Tables\Columns\IconColumn::make('is_editable')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-pencil')
-                    ->falseIcon('heroicon-o-lock-closed')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->date()
@@ -261,11 +254,6 @@ class MyKpiProgressResource extends Resource
                             default => $query,
                         };
                     }),
-                Tables\Filters\TernaryFilter::make('is_editable')
-                    ->label('Status Edit')
-                    ->boolean()
-                    ->trueLabel('Dapat Diedit')
-                    ->falseLabel('Terkunci'),
             ]);
     }
 

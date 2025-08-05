@@ -78,12 +78,12 @@ class MyKpiOkrOverview extends BaseWidget
                 ->description('Waiting for manager approval')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning'),
-                
-            Stat::make('Average Performance', number_format($overallAvg, 1) . '%')
-                ->description('Overall performance score')
-                ->descriptionIcon($overallAvg >= 80 ? 'heroicon-m-face-smile' : 'heroicon-m-face-frown')
-                ->color($overallAvg >= 90 ? 'success' : ($overallAvg >= 75 ? 'warning' : 'danger'))
-                ->chart([65, 70, 75, 80, 85, 78, 82, $overallAvg]),
+             
+            // Stat::make('Average Performance', number_format($overallAvg, 1) . '%')
+            //     ->description('Overall performance score')
+            //     ->descriptionIcon($overallAvg >= 80 ? 'heroicon-m-face-smile' : 'heroicon-m-face-frown')
+            //     ->color($overallAvg >= 90 ? 'success' : ($overallAvg >= 75 ? 'warning' : 'danger'))
+            //     ->chart([65, 70, 75, 80, 85, 78, 82, $overallAvg]), 
         ];
     }
 

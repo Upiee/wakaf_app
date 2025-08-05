@@ -68,8 +68,9 @@ class TeamOverview extends BaseWidget
                     ->label('KPI Realisasi')
                     ->numeric()
                     ->getStateUsing(function ($record) {
+                        $currentQuarter = 'Q2-2025'; // Using Q2-2025 where we have data
                         return RealisasiKpi::where('user_id', $record->id)
-                            ->where('periode', 'Q3-2025')
+                            ->where('periode', $currentQuarter)
                             ->count();
                     }),
                     
@@ -77,8 +78,9 @@ class TeamOverview extends BaseWidget
                     ->label('OKR Realisasi')
                     ->numeric()
                     ->getStateUsing(function ($record) {
+                        $currentQuarter = 'Q2-2025'; // Using Q2-2025 where we have data
                         return RealisasiOkr::where('user_id', $record->id)
-                            ->where('periode', 'Q3-2025')
+                            ->where('periode', $currentQuarter)
                             ->count();
                     }),
                     

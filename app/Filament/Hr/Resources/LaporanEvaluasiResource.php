@@ -91,15 +91,45 @@ class LaporanEvaluasiResource extends Resource
                             ->readonly()
                             ->helperText('Format: LAP-DIV{ID}-{YYYYMM} atau LAP-IND{DIVID}{USERID}-{YYYYMM}'),
 
-                        Forms\Components\DatePicker::make('periode_mulai')
-                            ->label('Periode Mulai')
+                        Forms\Components\Select::make('periode_quartal')
+                            ->label('Quartal')
+                            ->options([
+                                'Q1-2025' => 'Q1 2025 (Jan-Mar)',
+                                'Q2-2025' => 'Q2 2025 (Apr-Jun)',
+                                'Q3-2025' => 'Q3 2025 (Jul-Sep)',
+                                'Q4-2025' => 'Q4 2025 (Oct-Des)',
+                                'Q1-2026' => 'Q1 2026 (Jan-Mar)',
+                                'Q2-2026' => 'Q2 2026 (Apr-Jun)',
+                                'Q3-2026' => 'Q3 2026 (Jul-Sep)',
+                                'Q4-2026' => 'Q4 2026 (Oct-Des)',
+                            ])
+                            ->default('Q3-2025')
                             ->required()
-                            ->default(now()->startOfMonth()),
+                            ->live()
+                            ->afterStateUpdated(function ($state, $set) {
+                                // Auto-set periode_mulai dan periode_selesai berdasarkan quartal
+                                if ($state) {
+                                    $quarterMap = [
+                                        'Q1-2025' => ['2025-01-01', '2025-03-31'],
+                                        'Q2-2025' => ['2025-04-01', '2025-06-30'],
+                                        'Q3-2025' => ['2025-07-01', '2025-09-30'],
+                                        'Q4-2025' => ['2025-10-01', '2025-12-31'],
+                                        'Q1-2026' => ['2026-01-01', '2026-03-31'],
+                                        'Q2-2026' => ['2026-04-01', '2026-06-30'],
+                                        'Q3-2026' => ['2026-07-01', '2026-09-30'],
+                                        'Q4-2026' => ['2026-10-01', '2026-12-31'],
+                                    ];
+                                    
+                                    if (isset($quarterMap[$state])) {
+                                        $set('periode_mulai', $quarterMap[$state][0]);
+                                        $set('periode_selesai', $quarterMap[$state][1]);
+                                    }
+                                }
+                            })
+                            ->helperText('Pilih quartal untuk periode laporan evaluasi'),
 
-                        Forms\Components\DatePicker::make('periode_selesai')
-                            ->label('Periode Selesai')
-                            ->required()
-                            ->default(now()->endOfMonth()),
+                        Forms\Components\Hidden::make('periode_mulai'),
+                        Forms\Components\Hidden::make('periode_selesai'),
                     ])->columns(3),
 
                 Forms\Components\Section::make('Hasil Evaluasi')
@@ -220,10 +250,15 @@ class LaporanEvaluasiResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('periode_display')
-                    ->label('Periode')
-                    ->getStateUsing(fn($record) => $record->periode_mulai->format('d/m/Y') . ' - ' . $record->periode_selesai->format('d/m/Y'))
-                    ->sortable(['periode_mulai']),
+                Tables\Columns\TextColumn::make('periode_quartal')
+                    ->label('Quartal')
+                    ->badge()
+                    ->color('primary')
+                    ->sortable()
+                    ->placeholder('N/A')
+                    ->description(fn($record) => $record->periode_mulai && $record->periode_selesai ? 
+                        $record->periode_mulai->format('d/m/Y') . ' - ' . $record->periode_selesai->format('d/m/Y') : 
+                        'Periode tidak tersedia'),
 
                 Tables\Columns\TextColumn::make('kpi_okr_summary')
                     ->label('KPI/OKR')

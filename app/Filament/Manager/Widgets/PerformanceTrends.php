@@ -9,51 +9,63 @@ use Illuminate\Support\Facades\Auth;
 
 class PerformanceTrends extends ChartWidget
 {
-    protected static ?string $heading = 'Division Performance Trends';
+    protected static ?string $heading = 'Division Performance Trends (Quarterly)';
     protected static ?int $sort = 5;
     protected int | string | array $columnSpan = 'full';
+
+    public function getHeading(): string
+    {
+        $divisiName = Auth::user()->divisi->nama ?? 'Unknown Division';
+        return "Performance Trends - {$divisiName} Division";
+    }
 
     protected function getData(): array
     {
         $userDivisi = Auth::user()->divisi_id;
         
-        // Get last 6 months data
-        $months = collect();
-        for ($i = 5; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $months->push([
-                'month' => $date->format('M Y'),
-                'period' => $date->format('Y-m'),
-            ]);
-        }
+        // Get available periods from actual data
+        $availablePeriods = collect([
+            ['label' => 'Q1 2025', 'period' => 'Q1-2025'],
+            ['label' => 'Q2 2025', 'period' => 'Q2-2025'],
+            ['label' => 'Q3 2025', 'period' => 'Q3-2025'],
+            ['label' => 'Q4 2025', 'period' => 'Q4-2025'],
+        ]);
 
         $kpiData = [];
         $okrData = [];
         $avgData = [];
         $labels = [];
 
-        foreach ($months as $month) {
-            $labels[] = $month['month'];
+        foreach ($availablePeriods as $period) {
+            $labels[] = $period['label'];
             
-            // Get KPI average for this period
+            // Get KPI average for this quarter from users in this division
             $kpiAvg = RealisasiKpi::whereHas('user', function ($query) use ($userDivisi) {
                     $query->where('divisi_id', $userDivisi);
                 })
-                ->where('periode', 'like', '%' . $month['period'] . '%')
-                ->whereNotNull('approved_at')
+                ->where('periode', $period['period'])
                 ->avg('nilai') ?? 0;
                 
-            // Get OKR average for this period  
+            // Get OKR average for this quarter from users in this division
             $okrAvg = RealisasiOkr::whereHas('user', function ($query) use ($userDivisi) {
                     $query->where('divisi_id', $userDivisi);
                 })
-                ->where('periode', 'like', '%' . $month['period'] . '%')
-                ->whereNotNull('approved_at')
+                ->where('periode', $period['period'])
                 ->avg('nilai') ?? 0;
                 
             $kpiData[] = round($kpiAvg, 1);
             $okrData[] = round($okrAvg, 1);
-            $avgData[] = round(($kpiAvg + $okrAvg) / 2, 1);
+            
+            // Calculate average only if both KPI and OKR have data
+            if ($kpiAvg > 0 && $okrAvg > 0) {
+                $avgData[] = round(($kpiAvg + $okrAvg) / 2, 1);
+            } elseif ($kpiAvg > 0) {
+                $avgData[] = round($kpiAvg, 1);
+            } elseif ($okrAvg > 0) {
+                $avgData[] = round($okrAvg, 1);
+            } else {
+                $avgData[] = 0;
+            }
         }
 
         return [

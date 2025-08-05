@@ -15,11 +15,29 @@
         <!-- Overall Progress -->
         <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Completion</span>
-                <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($overall_completion_rate, 1) }}%</span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Performance Score</span>
+                <span class="text-lg font-bold text-gray-900 dark:text-white">{{ number_format($total_weighted_progress, 1) }}%</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: {{ $overall_completion_rate }}%"></div>
+            <div class="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700 mb-3">
+                <div class="bg-indigo-600 h-3 rounded-full transition-all duration-300" style="width: {{ min($total_weighted_progress, 100) }}%"></div>
+            </div>
+            
+            <!-- Performance Breakdown -->
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <div class="text-center">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">KPI Contribution</div>
+                    <div class="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        {{ number_format($performance_breakdown['kpi_contribution'], 1) }}% 
+                        <span class="text-xs text-gray-400">({{ number_format($kpi_stats['weight_percentage'], 1) }}% weight)</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">OKR Contribution</div>
+                    <div class="text-sm font-semibold text-green-600 dark:text-green-400">
+                        {{ number_format($performance_breakdown['okr_contribution'], 1) }}% 
+                        <span class="text-xs text-gray-400">({{ number_format($okr_stats['weight_percentage'], 1) }}% weight)</span>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -62,9 +80,14 @@
                 </div>
                 
                 @if($kpi_stats['avg_score'] > 0)
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-600 dark:text-gray-400">Average Score</span>
-                        <span class="font-medium text-blue-600 dark:text-blue-400">{{ number_format($kpi_stats['avg_score'], 1) }}%</span>
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mt-2">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-blue-700 dark:text-blue-300 font-medium">KPI Score ({{ number_format($kpi_stats['weight_percentage'], 1) }}% weight)</span>
+                            <span class="font-bold text-blue-600 dark:text-blue-400">{{ number_format($kpi_stats['avg_score'], 1) }}%</span>
+                        </div>
+                        <div class="text-xs text-blue-600 dark:text-blue-400">
+                            Contributes {{ number_format($performance_breakdown['kpi_contribution'], 1) }}% to total score
+                        </div>
                     </div>
                 @endif
             </div>
@@ -106,9 +129,14 @@
                 </div>
                 
                 @if($okr_stats['avg_score'] > 0)
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-600 dark:text-gray-400">Average Score</span>
-                        <span class="font-medium text-green-600 dark:text-green-400">{{ number_format($okr_stats['avg_score'], 1) }}%</span>
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mt-2">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-green-700 dark:text-green-300 font-medium">OKR Score ({{ number_format($okr_stats['weight_percentage'], 1) }}% weight)</span>
+                            <span class="font-bold text-green-600 dark:text-green-400">{{ number_format($okr_stats['avg_score'], 1) }}%</span>
+                        </div>
+                        <div class="text-xs text-green-600 dark:text-green-400">
+                            Contributes {{ number_format($performance_breakdown['okr_contribution'], 1) }}% to total score
+                        </div>
                     </div>
                 @endif
             </div>

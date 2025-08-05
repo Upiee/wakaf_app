@@ -105,7 +105,7 @@ class KelolaKPIResource extends Resource
                             ->label('ID KPI')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: KPI-2025-001')
+                            ->placeholder('Contoh: KPI-Q2-DIV-001')
                             ->helperText('ID unik untuk KPI ini, gunakan format yang konsisten')
                             ->disabled(fn($record) => $record && !$record->is_editable),
                     ])->columns(2),
@@ -136,28 +136,26 @@ class KelolaKPIResource extends Resource
                                     ->rows(2)
                                     ->placeholder('Cara mengukur progress...')
                                     ->columnSpan(2),
-                                Forms\Components\TextInput::make('progress_percentage')
-                                    ->label('Progress (%)')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->suffix('%')
-                                    ->default(0),
+                                // Forms\Components\TextInput::make('progress_percentage')
+                                //     ->label('Progress (%)')
+                                //     ->numeric()
+                                //     ->minValue(0)
+                                //     ->maxValue(100)
+                                //     ->suffix('%')
+                                //     ->default(0),
                                 Forms\Components\Select::make('status')
                                     ->label('Status')
                                     ->options([
                                         'not_started' => 'Belum Dimulai',
                                         'in_progress' => 'Sedang Berjalan',
-                                        'completed' => 'Selesai',
-                                        'on_hold' => 'Ditunda',
                                     ])
                                     ->default('not_started')
                                     ->required(),
-                                Forms\Components\Textarea::make('dokumen')
-                                    ->label('Dokumen/Link')
-                                    ->rows(1)
-                                    ->placeholder('Link atau nama dokumen...')
-                                    ->columnSpan(2),
+                                // Forms\Components\Textarea::make('dokumen')
+                                //     ->label('Dokumen/Link')
+                                //     ->rows(1)
+                                //     ->placeholder('Link atau nama dokumen...')
+                                //     ->columnSpan(2),
                             ])
                             ->columns(4)
                             ->defaultItems(1)
@@ -171,13 +169,13 @@ class KelolaKPIResource extends Resource
 
                 Forms\Components\Section::make('Progress & Timeline')
                     ->schema([
-                        Forms\Components\TextInput::make('progress')
-                            ->numeric()
-                            ->label('Progress Saat Ini (%)')
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('%')
-                            ->default(0),
+                        // Forms\Components\TextInput::make('progress')
+                        //     ->numeric()
+                        //     ->label('Progress Saat Ini (%)')
+                        //     ->minValue(0)
+                        //     ->maxValue(100)
+                        //     ->suffix('%')
+                        //     ->default(0),
                         Forms\Components\Select::make('periode')
                             ->label('Periode')
                             ->options([
@@ -185,14 +183,11 @@ class KelolaKPIResource extends Resource
                                 '2025-Q2' => 'Q2 2025',
                                 '2025-Q3' => 'Q3 2025',
                                 '2025-Q4' => 'Q4 2025',
-                                '2025-H1' => 'H1 2025',
-                                '2025-H2' => 'H2 2025',
-                                '2025' => 'Tahunan 2025',
                             ])
                             ->searchable(),
-                        Forms\Components\TextInput::make('timeline')
-                            ->label('Timeline Target')
-                            ->placeholder('Contoh: Akhir Juni 2025'),
+                        // Forms\Components\TextInput::make('timeline')
+                        //     ->label('Timeline Target')
+                        //     ->placeholder('Contoh: Akhir Juni 2025'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Pengaturan')

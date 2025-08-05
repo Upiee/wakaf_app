@@ -38,6 +38,26 @@ class TindakLanjut extends Model
         'progress_percentage' => 'integer',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Auto-generate kode jika belum ada
+            if (empty($model->kode_tindak_lanjut)) {
+                $model->kode_tindak_lanjut = self::generateAutoId();
+            }
+
+            // Auto-fill user_id dari laporan evaluasi jika belum ada
+            if (empty($model->user_id) && !empty($model->laporan_evaluasi_id)) {
+                $laporan = LaporanEvaluasi::find($model->laporan_evaluasi_id);
+                if ($laporan) {
+                    $model->user_id = $laporan->user_id;
+                }
+            }
+        });
+    }
+
     public function laporanEvaluasi(): BelongsTo
     {
         return $this->belongsTo(LaporanEvaluasi::class);
