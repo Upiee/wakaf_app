@@ -54,8 +54,6 @@ class ManagerPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Manager/Widgets'), for: 'App\\Filament\\Manager\\Widgets')
             ->widgets([
-                \App\Filament\Manager\Widgets\RecentActivities::class,
-                \App\Filament\Manager\Widgets\TeamOverview::class,
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
             ])

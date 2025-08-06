@@ -233,10 +233,12 @@ class OkrManagementResource extends Resource
                                 Forms\Components\Select::make('status')
                                     ->label('Status')
                                     ->options([
-                                        'not_started' => 'Belum Dimulai',
+                                        'draft' => 'Belum Dimulai',
                                         'in_progress' => 'Sedang Berjalan',
+                                        'completed' => 'Selesai',
+                                        'overdue' => 'Terlambat',
                                     ])
-                                    ->default('not_started')
+                                    ->default('draft')
                                     ->required(),
                                 // Forms\Components\Textarea::make('dokumen')
                                 //     ->label('Dokumen/Link')

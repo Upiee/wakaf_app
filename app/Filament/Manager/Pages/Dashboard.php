@@ -28,9 +28,8 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
-            \App\Filament\Manager\Widgets\PerformanceTrends::class,
+            \App\Filament\Manager\Widgets\DivisionProgressSummary::class,
             \App\Filament\Manager\Widgets\TopPerformers::class,
-            \App\Filament\Manager\Widgets\TeamOverview::class,
         ];
     }
 
@@ -39,16 +38,15 @@ class Dashboard extends BaseDashboard
         return [
             'default' => 1,
             'sm' => 2,
-            'md' => 3,
-            'lg' => 4,
-            'xl' => 6,
+            'md' => 2,
+            'lg' => 2,
+            'xl' => 2,
         ];
     }
 
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Manager\Widgets\DivisionPerformanceSummary::class,
             \App\Filament\Manager\Widgets\QuickStats::class,
         ];
     }
@@ -56,7 +54,7 @@ class Dashboard extends BaseDashboard
     protected function getFooterWidgets(): array
     {
         return [
-            \App\Filament\Manager\Widgets\RecentActivities::class,
+            // Removed RecentActivities to reduce clutter
         ];
     }
 }

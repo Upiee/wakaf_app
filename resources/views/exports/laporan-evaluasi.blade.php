@@ -107,7 +107,6 @@
                 <td>{{ $okr['kode'] }}</td>
                 <td>{{ $okr['activity'] }}</td>
                 <td>{{ $okr['target'] }}</td>
-                <td>-</td>
                 <td>{{ $okr['nilai'] }}</td>
                 <td>{{ $okr['nilai'] }}/100</td>
                 <td>{{ $okr['periode'] }}</td>

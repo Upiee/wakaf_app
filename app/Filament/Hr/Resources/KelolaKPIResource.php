@@ -190,13 +190,13 @@ class KelolaKPIResource extends Resource
                         //     ->placeholder('Contoh: Akhir Juni 2025'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Pengaturan')
-                    ->schema([
-                        Forms\Components\Toggle::make('is_editable')
-                            ->label('Dapat Diedit')
-                            ->default(true)
-                            ->helperText('Jika dimatikan, KPI ini tidak dapat diedit oleh user lain'),
-                    ]),
+                // Forms\Components\Section::make('Pengaturan')
+                //     ->schema([
+                //         Forms\Components\Toggle::make('is_editable')
+                //             ->label('Dapat Diedit')
+                //             ->default(true)
+                //             ->helperText('Jika dimatikan, KPI ini tidak dapat diedit oleh user lain'),
+                //     ]),
             ]);
     }
 

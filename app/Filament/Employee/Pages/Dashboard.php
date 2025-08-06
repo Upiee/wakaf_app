@@ -15,16 +15,16 @@ use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
 {
-    protected static ?string $navigationIcon = 'heroicon-o-home';
-    protected static string $view = 'filament.employee.pages.dashboard';
-    public ?string $user_id = null;
+    // protected static ?string $navigationIcon = 'heroicon-o-home';
+    // protected static string $view = 'filament.employee.pages.dashboard';
+    // public ?string $user_id = null;
 
-    public function mount(Request $request): void
-    {
-        parent::mount();
+    // public function mount(Request $request): void
+    // {
+    //     parent::mount();
 
-        $this->user_id = $request->query('user_id') ?? Auth::id();
-    }
+    //     $this->user_id = $request->query('user_id') ?? Auth::id();
+    // }
 
     public function getTitle(): string
     {

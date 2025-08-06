@@ -249,10 +249,7 @@ class EmployeeKpiApprovalResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->label('Review & Approve')
-                    ->visible(fn ($record) => is_null($record->approved_at)),
-
+                
                 Tables\Actions\Action::make('quick_approve')
                     ->label('Quick Approve')
                     ->icon('heroicon-o-check')
@@ -308,7 +305,7 @@ class EmployeeKpiApprovalResource extends Resource
                     ->color('info')
                     ->visible(fn ($record) => !is_null($record->approved_at))
                     ->url(fn ($record) => static::getUrl('view', ['record' => $record])),
-            ])
+                ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('bulk_approve')
@@ -353,7 +350,6 @@ class EmployeeKpiApprovalResource extends Resource
         return [
             'index' => Pages\ListEmployeeKpiApprovals::route('/'),
             'view' => Pages\ViewEmployeeKpiApproval::route('/{record}'),
-            'edit' => Pages\EditEmployeeKpiApproval::route('/{record}/edit'),
         ];
     }
 

@@ -138,13 +138,13 @@ class TindakLanjutResource extends Resource
                             ->default('planned')
                             ->required(),
 
-                        Forms\Components\TextInput::make('progress_percentage')
-                            ->label('Progress (%)')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('%')
-                            ->default(0),
+                        // Forms\Components\TextInput::make('progress_percentage')
+                        //     ->label('Progress (%)')
+                        //     ->numeric()
+                        //     ->minValue(0)
+                        //     ->maxValue(100)
+                        //     ->suffix('%')
+                        //     ->default(0),
                     ])->columns(2),
 
                 // Hidden fields
@@ -213,11 +213,11 @@ class TindakLanjutResource extends Resource
                         default => 'secondary'
                     }),
 
-                Tables\Columns\TextColumn::make('progress_percentage')
-                    ->label('Progress')
-                    ->numeric()
-                    ->suffix('%')
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('progress_percentage')
+                //     ->label('Progress')
+                //     ->numeric()
+                //     ->suffix('%')
+                //     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')

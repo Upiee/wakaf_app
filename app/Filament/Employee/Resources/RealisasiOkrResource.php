@@ -249,21 +249,21 @@ class RealisasiOkrResource extends Resource
                     ->placeholder('Catatan atau penjelasan tambahan untuk realisasi ini...')
                     ->rows(3),
 
-                Forms\Components\Toggle::make('is_cutoff')
-                    ->label('Set Final/Cutoff')
-                    ->helperText('⚠️ PERINGATAN: Setelah dicentang, data tidak dapat diubah lagi!')
-                    ->default(false)
-                    ->live()
-                    ->afterStateUpdated(function ($state, $set) {
-                        if ($state) {
-                            // Tampilkan konfirmasi via JavaScript atau notifikasi
-                            Notification::make()
-                                ->warning()
-                                ->title('Data akan di-set final!')
-                                ->body('Setelah di-save, data ini tidak dapat diubah lagi.')
-                                ->send();
-                        }
-                    }),
+                // Forms\Components\Toggle::make('is_cutoff')
+                //     ->label('Set Final/Cutoff')
+                //     ->helperText('⚠️ PERINGATAN: Setelah dicentang, data tidak dapat diubah lagi!')
+                //     ->default(false)
+                //     ->live()
+                //     ->afterStateUpdated(function ($state, $set) {
+                //         if ($state) {
+                //             // Tampilkan konfirmasi via JavaScript atau notifikasi
+                //             Notification::make()
+                //                 ->warning()
+                //                 ->title('Data akan di-set final!')
+                //                 ->body('Setelah di-save, data ini tidak dapat diubah lagi.')
+                //                 ->send();
+                //         }
+                //     }),
             ]);
     }
 

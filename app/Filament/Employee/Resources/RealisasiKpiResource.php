@@ -264,21 +264,21 @@ class RealisasiKpiResource extends Resource
                     ->placeholder('Catatan atau penjelasan tambahan untuk realisasi ini...')
                     ->rows(3),
 
-                Forms\Components\Toggle::make('is_cutoff')
-                    ->label('Set Final/Cutoff')
-                    ->helperText('⚠️ PERINGATAN: Setelah dicentang, data tidak dapat diubah lagi!')
-                    ->default(false)
-                    ->live()
-                    ->afterStateUpdated(function ($state, $set) {
-                        if ($state) {
-                            // Tampilkan konfirmasi via JavaScript atau notifikasi
-                            Notification::make()
-                                ->warning()
-                                ->title('Data akan di-set final!')
-                                ->body('Setelah di-save, data ini tidak dapat diubah lagi.')
-                                ->send();
-                        }
-                    }),
+                // Forms\Components\Toggle::make('is_cutoff')
+                //     ->label('Set Final/Cutoff')
+                //     ->helperText('⚠️ PERINGATAN: Setelah dicentang, data tidak dapat diubah lagi!')
+                //     ->default(false)
+                //     ->live()
+                //     ->afterStateUpdated(function ($state, $set) {
+                //         if ($state) {
+                //             // Tampilkan konfirmasi via JavaScript atau notifikasi
+                //             Notification::make()
+                //                 ->warning()
+                //                 ->title('Data akan di-set final!')
+                //                 ->body('Setelah di-save, data ini tidak dapat diubah lagi.')
+                //                 ->send();
+                //         }
+                //     }),
             ]);
     }
 
@@ -331,20 +331,20 @@ class RealisasiKpiResource extends Resource
                     ->color('primary')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('is_cutoff')
-                    ->label('Final')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-lock-closed')
-                    ->falseIcon('heroicon-o-lock-open')
-                    ->trueColor('success')
-                    ->falseColor('warning')
-                    ->sortable()
-                    ->tooltip(function ($record) {
-                        if ($record->is_cutoff) {
-                            return 'Data sudah final dan tidak dapat diubah';
-                        }
-                        return 'Data masih bisa diubah';
-                    }),
+                // Tables\Columns\IconColumn::make('is_cutoff')
+                //     ->label('Final')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-lock-closed')
+                //     ->falseIcon('heroicon-o-lock-open')
+                //     ->trueColor('success')
+                //     ->falseColor('warning')
+                //     ->sortable()
+                //     ->tooltip(function ($record) {
+                //         if ($record->is_cutoff) {
+                //             return 'Data sudah final dan tidak dapat diubah';
+                //         }
+                //         return 'Data masih bisa diubah';
+                //     }),
 
                 Tables\Columns\BadgeColumn::make('approval_status')
                     ->label('Status Approval')
